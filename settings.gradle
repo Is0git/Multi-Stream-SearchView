@@ -1,0 +1,3 @@
+rootProject.name='Multi-Stream-SearchView'
+include ':app'
+include ':multistreamsearchview'
