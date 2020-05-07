@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="SearchViewLayout">
+        <attr name="initializeDefaultFilters" format="boolean"/>
+        <attr name="headlineText" format="string"/>
+        <attr name="guidelineMarginStart" format="dimension"/>
+        <attr name="guidelineMarginEnd" format="dimension"/>
+        <attr name="guidelineMarginTop" format="dimension"/>
+        <attr name="ChipAction" format="reference"/>
+    </declare-styleable>
+
+    <style name="ChipAction" parent="Widget.MaterialComponents.Chip.Action"/>
+</resources>

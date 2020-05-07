@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="default_filter_name">Choose category</string>
+    <string name="search">Search</string>
+    <string name="category_filter_title">Search</string>
+    <string name="default_chip_name">All</string>
+    <string name="streams_category">Streams</string>
+    <string name="games_category">Games</string>
+    <string name="channels_category">Channels</string>
 </resources>
