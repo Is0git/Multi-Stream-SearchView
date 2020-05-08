@@ -1,6 +1,6 @@
 package com.multistream.multistreamsearchview
 
-import android.util.Log
+import androidx.annotation.IdRes
 import androidx.lifecycle.MutableLiveData
 
 class SearchManager<T> {
@@ -27,14 +27,18 @@ class SearchManager<T> {
 
     fun addFilter(
         name: String,
-        filterSelections: Collection<SelectionData<T>>,
+        filterSelections: Collection<FilterSelection<T>>,
         isSingleSelection: Boolean,
-        isMultipleSelectionEnabled: Boolean
+        isAllSelectionEnabled: Boolean
     ) {
-        val filter = SearchDataFilter<T>(name)
-        filter.addFilterSelections(filterSelections)
-        filter.isSingleSelection = isSingleSelection
-        filter.isMultipleSelectionEnabled = isMultipleSelectionEnabled
+        val filter = SearchDataFilter<T>(name).apply {
+            if (isAllSelectionEnabled) {
+                this.isAllSelectionEnabled = true
+                addAllFilterSelection(this)
+                this.isSingleSelection = isSingleSelection
+            }
+            addFilterSelections(filterSelections)
+        }
         filters.add(filter)
     }
 
@@ -43,21 +47,65 @@ class SearchManager<T> {
     }
 
     suspend fun queryData(query: String) {
-        val data = loadData()
-
-        if (data != null && data.isNotEmpty()) {
-            val filtered: MutableList<T> = mutableListOf<T>()
-            for (i in filters.indices) {
-
-                for (b in filters[i].filterSelections) {
-                   val result = if (i == 0)  b.selectionListener?.getData(data) else b.selectionListener?.getData(filtered)
-                    filtered.addAll(result!!)
-
+        val data = loadData() ?: return
+        var filterData = data
+        var filteredResult: MutableList<T>
+        for (filter in filters) {
+            val hasFilters = hasEnabledFilters(filter)
+            if (hasFilters) {
+                filteredResult = mutableListOf()
+                for (filterSelection in filter.filterSelections) {
+                    if (filterSelection.isEnabled) filterSelection.selectionListener?.getData(
+                        filterData
+                    )?.also {
+                        filteredResult.addAll(it)
+                    }
                 }
-
-                if (searchData.isEmpty()) break
+            } else {
+                continue
             }
-            itemsLiveData?.postValue(itemsData)
+            filterData = filteredResult
         }
+        itemsLiveData?.postValue(filterData)
     }
+
+    private fun hasEnabledFilters(filter: SearchDataFilter<T>): Boolean {
+        val allFilter = filter.filterSelections.first()
+        if (filter.filterSelections.first().id == R.id.default_chip && allFilter.isEnabled) {
+            return false
+        } else {
+            for (i in filter.filterSelections) {
+                if (i.id != R.id.default_chip && i.isEnabled) return true
+            }
+        }
+        return false
+    }
+
+    fun findSelectionFilterById(@IdRes id: Int): FilterSelection<T>? {
+        var result = filters.findInFilterOrNull { item: SearchDataFilter<T> ->
+            var selection: FilterSelection<T>? = null
+            for (filterSelection in item.filterSelections) {
+                if (filterSelection.id == id) {
+                    selection = filterSelection
+                    break
+                }
+            }
+            selection
+        }
+        return result
+    }
+
+    private fun addAllFilterSelection(filter: SearchDataFilter<T>) {
+        val filterSelection = FilterSelection<T>("All")
+        filterSelection.id = R.id.default_chip
+        filter.filterSelections.add(filterSelection)
+    }
+}
+
+fun <T, R> List<T>.findInFilterOrNull(action: (item: T) -> R?): R? {
+    var result: R? = null
+    for (b in this) {
+        result = action(b)
+    }
+    return result
 }

@@ -7,4 +7,5 @@
     <string name="streams_category">Streams</string>
     <string name="games_category">Games</string>
     <string name="channels_category">Channels</string>
+    <item name="default_chip" type="id"/>
 </resources>

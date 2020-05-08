@@ -1,6 +1,5 @@
 package com.multistream.multistreamsearchview
 
-import android.app.Activity
 import android.content.Context
 import android.util.AttributeSet
 import android.util.DisplayMetrics
@@ -8,17 +7,15 @@ import android.util.Log
 import android.view.View
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
+import android.widget.CompoundButton
 import android.widget.SearchView
 import android.widget.TextView
 import androidx.annotation.IdRes
-import androidx.annotation.RawRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.MATCH_CONSTRAINT
 import androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
 import androidx.core.view.children
-import androidx.core.view.get
-import androidx.core.view.marginTop
 import androidx.core.widget.TextViewCompat
 import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -26,13 +23,16 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.textview.MaterialTextView
+import com.multistream.multistreamsearchview.data_sync.MultipleSelectionDataSync
+import com.multistream.multistreamsearchview.data_sync.SingleSelectionDataSync
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 
-class SearchViewLayout : ConstraintLayout, SearchView.OnQueryTextListener, ChipGroup.OnCheckedChangeListener {
+class SearchViewLayout : ConstraintLayout, SearchView.OnQueryTextListener,
+    CompoundButton.OnCheckedChangeListener {
 
     lateinit var headlineText: MaterialTextView
 
@@ -58,6 +58,10 @@ class SearchViewLayout : ConstraintLayout, SearchView.OnQueryTextListener, ChipG
 
     var loadDataJob: Job? = null
 
+    val singleSelectionDataSync: SingleSelectionDataSync<SearchData> by lazy { SingleSelectionDataSync<SearchData>() }
+
+    val multipleSelectionDataSync: MultipleSelectionDataSync<SearchData> by lazy { MultipleSelectionDataSync<SearchData>() }
+
     lateinit var recyclerView: RecyclerView
 
     constructor(context: Context?) : super(context) {
@@ -74,6 +78,173 @@ class SearchViewLayout : ConstraintLayout, SearchView.OnQueryTextListener, ChipG
         defStyleAttr
     ) {
         init(context, attrs)
+    }
+
+    private fun createAllFilterViews() {
+        if (showDownloaderView) {
+//            val chipGroup = createDataSourceChipGroup()
+////            addView(chipGroup)
+        }
+        searchFilterManager.filters.forEach { searchDataFilter ->
+            val filterHeadline =
+                createFilterHeadline(searchDataFilter.filterName ?: defaultFilterName)
+            addView(filterHeadline)
+            val chipGroup = createChipGroup(
+                filterHeadline,
+                searchDataFilter.isSingleSelection,
+                searchDataFilter.isAllSelectionEnabled
+            )
+            searchDataFilter.id = chipGroup.id
+            searchDataFilter.filterSelections.forEach { selectionData ->
+                createChip(
+                    selectionData.dataName,
+                    selectionData.id ?: View.generateViewId(),
+                    searchDataFilter.isSingleSelection
+                ).also {
+                    Log.d("MATCHID", it.id.toString())
+                    selectionData.id = it.id
+                    chipGroup.addView(it)
+                }
+            }
+            addView(chipGroup)
+        }
+        addView(recyclerView)
+    }
+
+    private fun createFilterHeadline(title: String): TextView {
+        val lastChildView = getChildAt(childCount - 1)
+        val newLayoutParams = LayoutParams(convertDpToPixel(100), LayoutParams.WRAP_CONTENT).also {
+            it.topToBottom = lastChildView.id
+            it.startToStart = searchView.id
+            it.topMargin = filtersMarginTop
+        }
+        val text = MaterialTextView(context, null, R.attr.textAppearanceBody1).apply {
+            id = View.generateViewId()
+            text = title
+            layoutParams = newLayoutParams
+        }
+        TextViewCompat.setTextAppearance(text, R.style.TextAppearance_MaterialComponents_Body1)
+        return text
+    }
+
+    private fun createChipGroup(
+        titleView: View,
+        isSingleSelection: Boolean,
+        isAllSelectionEnabled: Boolean
+    ): ChipGroup {
+        return ChipGroup(context, null, R.attr.ChipAction).apply {
+            layoutParams = LayoutParams(MATCH_CONSTRAINT, WRAP_CONTENT).also {
+                id = View.generateViewId()
+                it.startToEnd = titleView.id
+                it.topToTop = titleView.id
+                it.endToEnd = searchView.id
+            }
+            this.isSingleSelection = isSingleSelection
+        }
+    }
+
+    private fun createChip(title: String?, id: Int, isSingleSelection: Boolean): Chip {
+        return Chip(context).apply {
+            this.id = id
+            layoutParams = LayoutParams(WRAP_CONTENT, WRAP_CONTENT)
+            text = title
+            this.setOnCheckedChangeListener(this@SearchViewLayout)
+            isCheckedIconVisible = isSingleSelection
+            isCheckable = true
+        }
+    }
+
+    fun addFilter(
+        name: String,
+        filterSelections: Collection<FilterSelection<SearchData>>,
+        isSingleSelection: Boolean = false,
+        isAllSelectionEnabled: Boolean = true
+    ) {
+        searchFilterManager.addFilter(
+            name,
+            filterSelections,
+            isSingleSelection,
+            isAllSelectionEnabled
+        )
+    }
+
+    fun invalidateFilters() {
+        resolveFilterViewsStartPosition()
+        if (childCount > 0) {
+            if (childCount - 1 > filterViewsStartPosition) {
+                for (filter in searchFilterManager.filters) {
+                    removeViewAt(filter.id)
+                }
+            }
+            createAllFilterViews()
+        }
+    }
+
+    private fun resolveFilterViewsStartPosition() {
+        children.forEachIndexed lit@{ index, view ->
+            if (view.id == filterDividerViewId) {
+                filterViewsStartPosition = index
+                return@lit
+            }
+        }
+    }
+
+    private fun createDataSourceChipGroup(): ChipGroup {
+        val titleView = createFilterHeadline("Choose something")
+        addView(titleView)
+        val chipGroup = createChipGroup(
+            titleView,
+            isSingleSelection = true,
+            isAllSelectionEnabled = true
+        )
+        searchFilterManager.dataSource?.sourceDownloads?.forEach {
+            val chip = createChip(it.isEnabled.toString(), View.generateViewId(),true)
+            chipGroup.addView(chip)
+        }
+        return chipGroup
+    }
+
+    private fun syncChipGroupWithData(@IdRes selectedId: Int, isChecked: Boolean) {
+        val filterSelection = searchFilterManager.findSelectionFilterById(selectedId)
+        filterSelection?.let {
+        singleSelectionDataSync.sync(filterSelection, selectedId, isChecked)
+        } ?: Log.e("filter", "no filter found")
+
+        searchFilterManager.filters[0].filterSelections.forEach {
+            Log.d("filter", "filter: ${it.dataName} enabled: ${it.isEnabled}")
+
+        }
+        Log.d("filter", "-------")
+    }
+
+    fun addSourceDownloader(sourceDownloader: DataSource.SourceDownloader<SearchData>) {
+        searchFilterManager.addSourceDownloader(sourceDownloader)
+    }
+
+    private fun convertDpToPixel(dp: Int): Int {
+        return dp * (resources.displayMetrics.densityDpi / DisplayMetrics.DENSITY_DEFAULT)
+    }
+
+    override fun onQueryTextSubmit(query: String?): Boolean {
+        loadDataJob =
+            CoroutineScope(Dispatchers.Default).launch { searchFilterManager.queryData(query!!) }
+        return false
+    }
+
+    override fun onQueryTextChange(newText: String?): Boolean {
+        return true
+    }
+
+    data class SearchData(
+        var title: String? = null,
+        var imageUrl: String? = null,
+        var category: Int? = null,
+        var platform: Int
+    )
+
+    override fun onCheckedChanged(buttonView: CompoundButton?, isChecked: Boolean) {
+        Log.d("MATCHID", "selected id: ${buttonView?.id}")
+        buttonView?.let { syncChipGroupWithData(it.id, isChecked) }
     }
 
     private fun init(context: Context?, attrs: AttributeSet? = null) {
@@ -127,167 +298,5 @@ class SearchViewLayout : ConstraintLayout, SearchView.OnQueryTextListener, ChipG
         addView(headlineText)
         addView(searchView)
         resolveFilterViewsStartPosition()
-    }
-
-    private fun createAllFilterViews() {
-        if (showDownloaderView) {
-            val chipGroup = createDataSourceChipGroup()
-            addView(chipGroup)
-        }
-        searchFilterManager.filters.forEach { searchDataFilter ->
-            val filterHeadline =
-                createFilterHeadline(searchDataFilter.filterName ?: defaultFilterName)
-            addView(filterHeadline)
-            val chipGroup = createChipGroup(
-                filterHeadline,
-                searchDataFilter.isSingleSelection,
-                searchDataFilter.isMultipleSelectionEnabled
-            )
-            searchDataFilter.id = chipGroup.id
-            searchDataFilter.filterSelections.forEach { selectionData ->
-                createChip(
-                    selectionData.dataName,
-                    searchDataFilter.isSingleSelection
-                ).also {
-                    selectionData.id = it.id
-                    chipGroup.addView(it)
-                }
-            }
-            addView(chipGroup)
-        }
-        addView(recyclerView)
-    }
-
-    private fun createFilterHeadline(title: String): TextView {
-        val lastChildView = getChildAt(childCount - 1)
-        val newLayoutParams = LayoutParams(convertDpToPixel(100), LayoutParams.WRAP_CONTENT).also {
-            it.topToBottom = lastChildView.id
-            it.startToStart = searchView.id
-            it.topMargin = filtersMarginTop
-        }
-        val text = MaterialTextView(context, null, R.attr.textAppearanceBody1).apply {
-            id = View.generateViewId()
-            text = title
-            layoutParams = newLayoutParams
-        }
-        TextViewCompat.setTextAppearance(text, R.style.TextAppearance_MaterialComponents_Body1)
-        return text
-    }
-
-    private fun createChipGroup(
-        titleView: View,
-        isSingleSelection: Boolean,
-        isMultipleSelectionEnabled: Boolean
-    ): ChipGroup {
-        return ChipGroup(context, null, R.attr.ChipAction).apply {
-            layoutParams = LayoutParams(MATCH_CONSTRAINT, WRAP_CONTENT).also {
-                id = View.generateViewId()
-                it.startToEnd = titleView.id
-                it.topToTop = titleView.id
-                it.endToEnd = searchView.id
-            }
-            this.isSingleSelection = isSingleSelection
-            setOnCheckedChangeListener(this@SearchViewLayout)
-            if (isMultipleSelectionEnabled) this.addView(
-                createChip(
-                    resources.getString(R.string.default_chip_name),
-                    isSingleSelection
-                )
-            )
-        }
-    }
-
-    private fun createChip(title: String?, isSingleSelection: Boolean): Chip {
-        return Chip(context).apply {
-            id = View.generateViewId()
-            layoutParams = LayoutParams(WRAP_CONTENT, WRAP_CONTENT)
-            text = title
-            isCheckedIconVisible = isSingleSelection
-            isCheckable = true
-        }
-    }
-
-    fun addFilter(
-        name: String,
-        filterSelections: Collection<SelectionData<SearchData>>,
-        isSingleSelection: Boolean = false,
-        isMultipleSelectionEnabled: Boolean = true
-    ) {
-        searchFilterManager.addFilter(
-            name,
-            filterSelections,
-            isSingleSelection,
-            isMultipleSelectionEnabled
-        )
-    }
-
-    fun invalidateFilters() {
-        resolveFilterViewsStartPosition()
-        if (childCount > 0) {
-            if (childCount - 1 > filterViewsStartPosition) {
-                for (filter in searchFilterManager.filters) {
-                    removeViewAt(filter.id)
-                }
-            }
-            createAllFilterViews()
-        }
-    }
-
-    private fun resolveFilterViewsStartPosition() {
-        children.forEachIndexed lit@{ index, view ->
-            if (view.id == filterDividerViewId) {
-                filterViewsStartPosition = index
-                return@lit
-            }
-        }
-    }
-
-    private fun createDataSourceChipGroup(): ChipGroup {
-        val titleView = createFilterHeadline("Choose something")
-        addView(titleView)
-        val chipGroup = createChipGroup(
-            titleView,
-            isSingleSelection = true,
-            isMultipleSelectionEnabled = true
-        )
-        searchFilterManager.dataSource?.sourceDownloads?.forEach {
-            val chip = createChip(it.isEnabled.toString(), true)
-            chipGroup.addView(chip)
-        }
-        return chipGroup
-    }
-
-    private fun syncChipGroupWithData(@IdRes groupId: Int, @IdRes selectedId: Int) {
-        searchFilterManager.filters
-            .find { it.id == groupId }?.filterSelections
-            ?.forEach {it.isEnabled =  it.id == selectedId }
-    }
-
-    fun addSourceDownloader(sourceDownloader: DataSource.SourceDownloader<SearchData>) {
-        searchFilterManager.addSourceDownloader(sourceDownloader)
-    }
-
-    private fun convertDpToPixel(dp: Int): Int {
-        return dp * (resources.displayMetrics.densityDpi / DisplayMetrics.DENSITY_DEFAULT)
-    }
-
-    override fun onQueryTextSubmit(query: String?): Boolean {
-        loadDataJob = CoroutineScope(Dispatchers.Default).launch { searchFilterManager.queryData(query!!) }
-        return false
-    }
-
-    override fun onQueryTextChange(newText: String?): Boolean {
-        return true
-    }
-
-    data class SearchData(
-        var title: String? = null,
-        var imageUrl: String? = null,
-        var category: Int? = null,
-        var platform: Int
-    )
-
-    override fun onCheckedChanged(group: ChipGroup?, checkedId: Int) {
-        group?.let {  syncChipGroupWithData(group.id, checkedId) }
     }
 }

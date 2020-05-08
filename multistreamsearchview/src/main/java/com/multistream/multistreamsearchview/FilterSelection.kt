@@ -1,10 +1,12 @@
 package com.multistream.multistreamsearchview
 
-class SelectionData<T>(var dataName: String? = "Empty", var selectionListener: OnSelectionListener<T>? = null) {
+class FilterSelection<T>(var dataName: String? = "Empty", var selectionListener: OnSelectionListener<T>? = null) {
 
-    var id: Int = 0
+    var id: Int? = null
 
     var isEnabled: Boolean = false
+
+    var default:
 
     interface OnSelectionListener<T> {
        suspend fun getData(data: List<T>) : List<T>
@@ -26,8 +28,8 @@ class SelectionData<T>(var dataName: String? = "Empty", var selectionListener: O
             return this
         }
 
-        fun<T> build(clazz: Class<T>) : SelectionData<T> {
-           return SelectionData<T>(filterSelectionName ?: "null", selectionListener as OnSelectionListener<T>)
+        fun<T> build(clazz: Class<T>) : FilterSelection<T> {
+           return FilterSelection<T>(filterSelectionName ?: "null", selectionListener as OnSelectionListener<T>)
         }
     }
 }

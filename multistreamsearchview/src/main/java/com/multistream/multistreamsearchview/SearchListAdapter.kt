@@ -28,6 +28,6 @@ class SearchListAdapter : RecyclerView.Adapter<SearchListAdapter.MyViewHolder>()
     }
 
     override fun onBindViewHolder(holder: MyViewHolder, position: Int) {
-        holder.categoryText.text = data?.get(position)?.category.toString()
+        holder.categoryText.text = data?.get(position)?.platform.toString()
     }
 }
