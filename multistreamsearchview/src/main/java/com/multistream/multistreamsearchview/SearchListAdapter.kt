@@ -1,5 +1,6 @@
 package com.multistream.multistreamsearchview
 
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -19,7 +20,8 @@ class SearchListAdapter : RecyclerView.Adapter<SearchListAdapter.MyViewHolder>()
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MyViewHolder {
-      val view = LayoutInflater.from(parent.context).inflate(R.layout.search_item, parent, false)
+        Log.d("filter", "CREATE")
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.search_item, parent, false)
         return MyViewHolder(view)
     }
 
@@ -28,6 +30,12 @@ class SearchListAdapter : RecyclerView.Adapter<SearchListAdapter.MyViewHolder>()
     }
 
     override fun onBindViewHolder(holder: MyViewHolder, position: Int) {
+        Log.d("filter", "BIND")
         holder.categoryText.text = data?.get(position)?.platform.toString()
+    }
+
+    override fun getItemViewType(position: Int): Int {
+        Log.d("filter", "ITEMVIEWTYPE")
+        return super.getItemViewType(position)
     }
 }

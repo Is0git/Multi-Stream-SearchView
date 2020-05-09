@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="1dp"
+    android:layout_marginStart="8dp"
+    android:layout_marginEnd="8dp"
+    app:cardElevation="1dp">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <ImageView
+            android:id="@+id/recent_image"
+            android:layout_width="20dp"
+            android:layout_height="20dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
+            android:src="@drawable/recent_icon"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <ImageButton
+            android:id="@+id/cancel_button"
+            android:layout_width="25dp"
+            android:layout_height="25dp"
+            android:layout_marginEnd="8dp"
+            android:background="@drawable/cancel"
+            app:layout_constraintBottom_toBottomOf="@id/recent_image"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/recent_image" />
+
+        <com.google.android.material.textview.MaterialTextView
+            style="@style/TextAppearance.MaterialComponents.Caption"
+            android:id="@+id/searchedCount"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:lines="1"
+            android:text="5 times"
+            android:textStyle="bold"
+            android:textAlignment="viewEnd"
+            android:gravity="end"
+            android:layout_marginEnd="8dp"
+            app:layout_constraintBottom_toBottomOf="@+id/searchText"
+            app:layout_constraintEnd_toStartOf="@+id/cancel_button"
+            app:layout_constraintStart_toEndOf="@+id/searchText"
+            app:layout_constraintTop_toTopOf="@+id/searchText" />
+
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/searchText"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:lines="1"
+            android:textAlignment="textStart"
+            android:layout_marginStart="8dp"
+            android:text="greekgodx"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="@+id/recent_image"
+            app:layout_constraintEnd_toStartOf="@+id/searchedCount"
+            app:layout_constraintHorizontal_bias="0.5"
+            app:layout_constraintStart_toEndOf="@+id/recent_image"
+            app:layout_constraintTop_toTopOf="@+id/recent_image" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</com.google.android.material.card.MaterialCardView>

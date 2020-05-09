@@ -5,7 +5,7 @@ open class SearchDataFilter<T>(var filterName: String? = null) {
 
     var isSingleSelection: Boolean = false
 
-    var isAllSelectionEnabled = true
+    var isMultipleSelectionEnabled = true
 
     val filterSelections: MutableList<FilterSelection<T>> by lazy { mutableListOf<FilterSelection<T>>() }
 

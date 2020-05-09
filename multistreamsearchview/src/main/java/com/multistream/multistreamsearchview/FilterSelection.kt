@@ -1,12 +1,14 @@
 package com.multistream.multistreamsearchview
 
+import android.view.View
+
 class FilterSelection<T>(var dataName: String? = "Empty", var selectionListener: OnSelectionListener<T>? = null) {
 
     var id: Int? = null
 
     var isEnabled: Boolean = false
 
-    var default:
+    var isAllFilter: Boolean = false
 
     interface OnSelectionListener<T> {
        suspend fun getData(data: List<T>) : List<T>
@@ -29,7 +31,7 @@ class FilterSelection<T>(var dataName: String? = "Empty", var selectionListener:
         }
 
         fun<T> build(clazz: Class<T>) : FilterSelection<T> {
-           return FilterSelection<T>(filterSelectionName ?: "null", selectionListener as OnSelectionListener<T>)
+           return FilterSelection<T>(filterSelectionName ?: "null", selectionListener as OnSelectionListener<T>).also { it.id  = View.generateViewId()}
         }
     }
 }
