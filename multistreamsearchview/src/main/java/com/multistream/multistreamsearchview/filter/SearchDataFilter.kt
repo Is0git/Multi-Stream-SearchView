@@ -1,4 +1,4 @@
-package com.multistream.multistreamsearchview
+package com.multistream.multistreamsearchview.filter
 
 open class SearchDataFilter<T>(var filterName: String? = null) {
     var id: Int = 0

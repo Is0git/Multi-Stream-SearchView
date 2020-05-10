@@ -1,97 +1,79 @@
 package com.example.multistreamsearchview
 
+import android.app.UiModeManager.MODE_NIGHT_YES
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.databinding.DataBindingUtil
 import com.example.multistreamsearchview.databinding.ActivityMainBinding
-import com.multistream.multistreamsearchview.DataSource
-import com.multistream.multistreamsearchview.SearchViewLayout
-import com.multistream.multistreamsearchview.FilterSelection
+import com.multistream.multistreamsearchview.data_source.DataSource
+import com.multistream.multistreamsearchview.search_view.SearchViewLayout
+import com.multistream.multistreamsearchview.filter.FilterSelection
 
 class MainActivity : AppCompatActivity() {
+
     lateinit var binding: ActivityMainBinding
-
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = DataBindingUtil.setContentView(this, R.layout.activity_main)
-
-        binding.searchLayout.addSourceDownloader(object :
-            DataSource.SourceDownloader<SearchViewLayout.SearchData> {
-
-            override var isEnabled: Boolean = true
-
-            override suspend fun getData(): List<SearchViewLayout.SearchData> {
-                return getData(GAMES, TWITCH)
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+        val sourceDownloader = DataSource.Builder()
+            .setIconDrawable(R.drawable.twitch_icon)
+            .setName("Twitch")
+            .build(SearchViewLayout.SearchData::class.java) {
+                getData(TWITCH, GAMES) + getData2(
+                    TWITCH,
+                    GAMES
+                )
             }
-        })
 
-        binding.searchLayout.addSourceDownloader(object :
-            DataSource.SourceDownloader<SearchViewLayout.SearchData> {
-
-            override var isEnabled: Boolean = true
-
-            override suspend fun getData(): List<SearchViewLayout.SearchData> {
-                return getData2(STREAMS, MIXER)
+        val sourceDownloader3 = DataSource.Builder()
+            .setIconDrawable(R.drawable.recent_icon)
+            .setName("All")
+            .build(SearchViewLayout.SearchData::class.java) {
+                getData(TWITCH, GAMES) + getData2(
+                    TWITCH,
+                    GAMES
+                )
             }
-        })
 
+        val sourceDownloader2 = DataSource.Builder()
+            .setIconDrawable(R.drawable.mixer_icon)
+            .setName("Mixer")
+            .build(SearchViewLayout.SearchData::class.java) {
+                getData(TWITCH, GAMES) + getData2(
+                    TWITCH,
+                    GAMES
+                )
+            }
+        binding.searchLayout.addSourceDownloader(sourceDownloader3)
+
+        binding.searchLayout.addSourceDownloader(sourceDownloader)
+
+        binding.searchLayout.addSourceDownloader(sourceDownloader2)
         val platform = FilterSelection.Builder()
             .setFilterSelectionName("Twitch")
-            .addSelectionListener(object :
-                FilterSelection.OnSelectionListener<SearchViewLayout.SearchData> {
-                override suspend fun getData(data: List<SearchViewLayout.SearchData>): List<SearchViewLayout.SearchData> {
-                    return data.filter { it.platform == TWITCH }
-                }
-            }).build(SearchViewLayout.SearchData::class.java)
-
+            .build(SearchViewLayout.SearchData::class.java) { list -> list.filter { it.platform == TWITCH } }
         val platform2 = FilterSelection.Builder()
             .setFilterSelectionName("Mixer")
-            .addSelectionListener(object :
-                FilterSelection.OnSelectionListener<SearchViewLayout.SearchData> {
-                override suspend fun getData(data: List<SearchViewLayout.SearchData>): List<SearchViewLayout.SearchData> {
-                    return data.filter { it.platform == MIXER }
-                }
-            }).build(SearchViewLayout.SearchData::class.java)
-
-
+            .build(SearchViewLayout.SearchData::class.java) { list -> list.filter { it.platform == MIXER } }
         val listOfSelectionData = listOf(platform, platform2)
-
-        binding.searchLayout.addFilter("Choose platform", listOfSelectionData, true,  true)
-
+        binding.searchLayout.addFilter("Choose platform", listOfSelectionData, true, true)
         val category = FilterSelection.Builder()
             .setFilterSelectionName("Games")
-            .addSelectionListener(object :
-                FilterSelection.OnSelectionListener<SearchViewLayout.SearchData> {
-                override suspend fun getData(data: List<SearchViewLayout.SearchData>): List<SearchViewLayout.SearchData> {
-                    val newList = data.filter { it.category == GAMES }
-                    return newList
-                }
-            }).build(SearchViewLayout.SearchData::class.java)
-
+            .build(SearchViewLayout.SearchData::class.java) { list -> list.filter { it.category == GAMES } }
         val category2 = FilterSelection.Builder()
             .setFilterSelectionName("Channels")
-            .addSelectionListener(object :
-                FilterSelection.OnSelectionListener<SearchViewLayout.SearchData> {
-                override suspend fun getData(data: List<SearchViewLayout.SearchData>): List<SearchViewLayout.SearchData> {
-                    return data.filter { it.category == CHANNELS }
-                }
-            }).build(SearchViewLayout.SearchData::class.java)
-
+            .build(SearchViewLayout.SearchData::class.java) { list -> list.filter { it.category == CHANNELS } }
         val category3 = FilterSelection.Builder()
             .setFilterSelectionName("Streams")
-            .addSelectionListener(object :
-                FilterSelection.OnSelectionListener<SearchViewLayout.SearchData> {
-                override suspend fun getData(data: List<SearchViewLayout.SearchData>): List<SearchViewLayout.SearchData> {
-                    return data.filter { it.category == STREAMS }
-                }
-            }).build(SearchViewLayout.SearchData::class.java)
-
+            .build(SearchViewLayout.SearchData::class.java) { list -> list.filter { it.category == STREAMS } }
         val listOfSelectionData1 = listOf(category, category2, category3)
         binding.searchLayout.addFilter("Choose category", listOfSelectionData1, false, true)
-        binding.searchLayout.invalidateFilters()
+        binding.searchLayout.initSearchView()
     }
+
     companion object {
         val GAMES = 0
         val CHANNELS = 1

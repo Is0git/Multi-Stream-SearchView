@@ -9,7 +9,7 @@ import android.widget.CompoundButton
 import android.widget.TextView
 import androidx.annotation.IdRes
 import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
+import androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.*
 import androidx.core.view.children
 import androidx.core.widget.TextViewCompat
 import androidx.lifecycle.LiveData
@@ -17,28 +17,43 @@ import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.textview.MaterialTextView
 import com.multistream.multistreamsearchview.*
+import com.multistream.multistreamsearchview.data_source.DataSource
 import com.multistream.multistreamsearchview.data_sync.SingleSelectionDataSync
+import com.multistream.multistreamsearchview.search_manager.SearchManager
+import com.multistream.multistreamsearchview.search_view.SearchViewLayout
+import com.multistream.multistreamsearchview.search_view.convertDpToPixel
 
 class FilterLayout : ConstraintLayout, CompoundButton.OnCheckedChangeListener {
 
-    var searchFilterManager: SearchManager<SearchViewLayout.SearchData> = SearchManager()
+    private var searchFilterManager: SearchManager<SearchViewLayout.SearchData>? = null
 
     var defaultFilterName = resources.getString(R.string.default_filter_name)
 
-    var filtersMarginTop = convertDpToPixel(25, resources)
+    var filtersMarginTop =
+        convertDpToPixel(
+            25,
+            resources
+        )
+
+    lateinit var filterText: TextView
 
     private val singleSelectionDataSync: SingleSelectionDataSync<SearchViewLayout.SearchData> by lazy { SingleSelectionDataSync<SearchViewLayout.SearchData>() }
 
-    constructor(context: Context?) : super(context)
-    constructor(context: Context?, attrs: AttributeSet?) : super(context, attrs)
+    constructor(context: Context?) : super(context) {init(context)}
+    constructor(context: Context?, attrs: AttributeSet?) : super(context, attrs) {init(context)}
     constructor(context: Context?, attrs: AttributeSet?, defStyleAttr: Int) : super(
         context,
         attrs,
         defStyleAttr
-    )
+    ) {init(context)}
+
+    constructor(searchManager: SearchManager<SearchViewLayout.SearchData>, context: Context? ) : super(context) {
+        searchFilterManager = searchManager
+        init(context)
+    }
 
     private fun createAllFilterViews() {
-        searchFilterManager.filters.forEach { searchDataFilter ->
+        searchFilterManager?.filters?.forEach { searchDataFilter ->
             val filterHeadline =
                 createFilterHeadline(searchDataFilter.filterName ?: defaultFilterName)
             addView(filterHeadline)
@@ -65,9 +80,13 @@ class FilterLayout : ConstraintLayout, CompoundButton.OnCheckedChangeListener {
 
     private fun createFilterHeadline(title: String): TextView {
         val lastChildView = getChildAt(childCount - 1)
-        val newLayoutParams = LayoutParams(convertDpToPixel(100, resources), LayoutParams.WRAP_CONTENT).also {
+        val newLayoutParams = LayoutParams(
+            convertDpToPixel(
+                100,
+                resources
+            ), LayoutParams.WRAP_CONTENT).also {
             it.topToBottom = lastChildView.id
-            it.startToStart = PARENT_ID
+            it.startToStart = filterText.id
             it.topMargin = filtersMarginTop
         }
         val text = MaterialTextView(context, null, R.attr.textAppearanceBody1).apply {
@@ -116,7 +135,7 @@ class FilterLayout : ConstraintLayout, CompoundButton.OnCheckedChangeListener {
         isSingleSelection: Boolean = false,
         isAllSelectionEnabled: Boolean = true
     ) {
-        searchFilterManager.addFilter(
+        searchFilterManager?.addFilter(
             name,
             filterSelections,
             isSingleSelection,
@@ -126,9 +145,9 @@ class FilterLayout : ConstraintLayout, CompoundButton.OnCheckedChangeListener {
 
 
     private fun syncChipGroupWithData(@IdRes selectedId: Int, isChecked: Boolean) {
-        val filterSelection = searchFilterManager.findSelectionFilterById(selectedId)
+        val filterSelection = searchFilterManager?.findSelectionFilterById(selectedId)
         if (filterSelection != null) {
-            val filter = searchFilterManager.findFilterBySelectionId(selectedId)
+            val filter = searchFilterManager?.findFilterBySelectionId(selectedId)
             if (filter != null && filter.isMultipleSelectionEnabled && filterSelection.isAllFilter) {
                 val chipGroup = findViewById<ChipGroup>(filter.id)
                 singleSelectionDataSync.sync(filterSelection, selectedId, isChecked)
@@ -145,7 +164,7 @@ class FilterLayout : ConstraintLayout, CompoundButton.OnCheckedChangeListener {
         } else {
             Log.e("filter", "no filter found")
         }
-        searchFilterManager.filters[1].filterSelections.forEach {
+        searchFilterManager?.filters!![1].filterSelections.forEach {
             Log.d("filter", "filter: ${it.dataName} enabled: ${it.isEnabled}")
 
         }
@@ -153,11 +172,11 @@ class FilterLayout : ConstraintLayout, CompoundButton.OnCheckedChangeListener {
     }
 
     fun getFilteredObserver(): LiveData<List<SearchViewLayout.SearchData>>? {
-        return searchFilterManager.itemsLiveData
+        return searchFilterManager?.itemsLiveData
     }
 
     fun addSourceDownloader(sourceDownloader: DataSource.SourceDownloader<SearchViewLayout.SearchData>) {
-        searchFilterManager.addSourceDownloader(sourceDownloader)
+        searchFilterManager?.addSourceDownloader(sourceDownloader)
     }
 
     override fun onCheckedChanged(buttonView: CompoundButton?, isChecked: Boolean) {
@@ -187,6 +206,9 @@ class FilterLayout : ConstraintLayout, CompoundButton.OnCheckedChangeListener {
 //        }
     }
 
+    fun createFilters() {
+        createAllFilterViews()
+    }
     //    private fun createDataSourceChipGroup(): ChipGroup {
 //        val titleView = createFilterHeadline("Choose something")
 //        addView(titleView)
@@ -203,6 +225,37 @@ class FilterLayout : ConstraintLayout, CompoundButton.OnCheckedChangeListener {
 //    }
 
    suspend fun query(text: String) {
-        searchFilterManager.queryData(text)
+        searchFilterManager?.queryData(text)
+    }
+
+    private fun init(context: Context?) {
+        filterText = MaterialTextView(context!!).apply {
+            id = View.generateViewId()
+            layoutParams = LayoutParams(MATCH_CONSTRAINT, WRAP_CONTENT).also {
+                it.topToTop = PARENT_ID
+                it.startToStart = PARENT_ID
+                it.endToEnd = PARENT_ID
+                it.topMargin =
+                    convertDpToPixel(
+                        30,
+                        resources
+                    )
+                it.marginEnd=
+                    convertDpToPixel(
+                        25,
+                        resources
+                    )
+                it.marginStart =
+                    convertDpToPixel(
+                        25,
+                        resources
+                    )
+            }
+            TextViewCompat.setTextAppearance(this, R.style.TextAppearance_MaterialComponents_Headline3)
+            text = context.getString(R.string.filters)
+            textAlignment = View.TEXT_ALIGNMENT_TEXT_START
+        }
+
+        addView(filterText)
     }
 }

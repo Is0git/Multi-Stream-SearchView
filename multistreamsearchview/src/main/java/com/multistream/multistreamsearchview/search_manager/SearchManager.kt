@@ -1,8 +1,11 @@
-package com.multistream.multistreamsearchview
+package com.multistream.multistreamsearchview.search_manager
 
 import android.view.View
 import androidx.annotation.IdRes
 import androidx.lifecycle.MutableLiveData
+import com.multistream.multistreamsearchview.data_source.DataSource
+import com.multistream.multistreamsearchview.filter.FilterSelection
+import com.multistream.multistreamsearchview.filter.SearchDataFilter
 
 class SearchManager<T> : FilterSelection.OnSelectionListener<T> {
 
@@ -12,7 +15,7 @@ class SearchManager<T> : FilterSelection.OnSelectionListener<T> {
 
     val filters: MutableList<SearchDataFilter<T>> by lazy { mutableListOf<SearchDataFilter<T>>() }
 
-    var dataSource: DataSource<T>? = DataSource()
+    var dataSource: DataSource<T> = DataSource()
 
     var isSourceDownloadEnabled = true
 
@@ -20,8 +23,8 @@ class SearchManager<T> : FilterSelection.OnSelectionListener<T> {
         data?.let {
             itemsData = it
         }
-        if (isSourceDownloadEnabled && dataSource != null) {
-            itemsData = dataSource?.getAllData()
+        if (isSourceDownloadEnabled) {
+            itemsData = dataSource.getAllData()
         }
         return itemsData
     }
@@ -32,7 +35,9 @@ class SearchManager<T> : FilterSelection.OnSelectionListener<T> {
         isSingleSelection: Boolean,
         isAllSelectionEnabled: Boolean
     ) {
-        val filter = SearchDataFilter<T>(name).apply {
+        val filter = SearchDataFilter<T>(
+            name
+        ).apply {
             if (isAllSelectionEnabled) {
                 this.isMultipleSelectionEnabled = true
                 addAllFilterSelection(this)
@@ -92,7 +97,9 @@ class SearchManager<T> : FilterSelection.OnSelectionListener<T> {
     }
 
     private fun addAllFilterSelection(filter: SearchDataFilter<T>) {
-        val filterSelection = FilterSelection<T>("All").apply {
+        val filterSelection = FilterSelection<T>(
+            "All"
+        ).apply {
             id = View.generateViewId()
             isAllFilter = true
             isEnabled = true
@@ -111,6 +118,7 @@ class SearchManager<T> : FilterSelection.OnSelectionListener<T> {
             selectionData != null
         }
     }
+
 }
 fun <T, R> List<T>.findInFilterOrNull(action: (item: T) -> R?): R? {
     var result: R? = null

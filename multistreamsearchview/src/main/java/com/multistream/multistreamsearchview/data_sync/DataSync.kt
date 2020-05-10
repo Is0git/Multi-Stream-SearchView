@@ -1,7 +1,6 @@
 package com.multistream.multistreamsearchview.data_sync
 
-import com.multistream.multistreamsearchview.SearchDataFilter
-import com.multistream.multistreamsearchview.FilterSelection
+import com.multistream.multistreamsearchview.filter.FilterSelection
 
 abstract class DataSync<T> {
 

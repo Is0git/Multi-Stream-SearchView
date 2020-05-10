@@ -1,12 +1,38 @@
 <resources>
 
     <!-- Base application theme. -->
-    <style name="AppTheme" parent="Theme.MaterialComponents.Light.NoActionBar">
+    <style name="AppTheme" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <!-- Customize your theme here. -->
         <item name="colorPrimary">@color/colorPrimary</item>
         <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
         <item name="colorAccent">@color/colorAccent</item>
+        <item name="colorOnSurface">@color/colorOnSurface</item>
+        <item name="colorSurface">@color/colorSurface</item>
+        <item name="colorPrimaryVariant">@color/colorOnPrimaryVariant</item>
+        <item name="colorSecondary">@color/colorSecondary</item>
         <item name="android:windowFullscreen">true</item>
+        <item name="android:colorBackground">@color/colorBackground</item>
+        <item name="colorSecondaryVariant">@color/colorOnSecondaryVariant</item>
     </style>
+
+
+    <style name="tabTextAppearance">
+        <item name="android:textSize">0sp</item>
+        <item name="android:visibility">invisible</item>
+    </style>
+
+    <style name="tabCustomStyle" parent="Widget.Design.TabLayout">
+        <item name="tabGravity">fill</item>
+        <item name="tabMaxWidth">0dp</item>
+        <item name="tabIndicatorColor">#FFFEEFC4</item>
+        <item name="tabIndicatorHeight">2dp</item>
+        <item name="tabSelectedTextColor">@color/colorSecondary</item>
+    </style>
+
+    <style name="defaultMaterialCard" parent="Widget.MaterialComponents.CardView">
+        <item name="cardCornerRadius">25dp</item>
+    </style>
+
+
 
 </resources>

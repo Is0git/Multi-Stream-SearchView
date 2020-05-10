@@ -1,6 +1,6 @@
 package com.multistream.multistreamsearchview.data_sync
 
-import com.multistream.multistreamsearchview.FilterSelection
+import com.multistream.multistreamsearchview.filter.FilterSelection
 
 class SingleSelectionDataSync<T> : DataSync<T>() {
     override fun syncFilter(

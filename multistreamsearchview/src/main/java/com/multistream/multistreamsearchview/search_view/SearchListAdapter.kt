@@ -1,4 +1,4 @@
-package com.multistream.multistreamsearchview
+package com.multistream.multistreamsearchview.search_view
 
 import android.util.Log
 import android.view.LayoutInflater
@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
+import com.multistream.multistreamsearchview.R
 
 class SearchListAdapter : RecyclerView.Adapter<SearchListAdapter.MyViewHolder>() {
 
@@ -22,7 +23,9 @@ class SearchListAdapter : RecyclerView.Adapter<SearchListAdapter.MyViewHolder>()
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): MyViewHolder {
         Log.d("filter", "CREATE")
         val view = LayoutInflater.from(parent.context).inflate(R.layout.search_item, parent, false)
-        return MyViewHolder(view)
+        return MyViewHolder(
+            view
+        )
     }
 
     override fun getItemCount(): Int {
