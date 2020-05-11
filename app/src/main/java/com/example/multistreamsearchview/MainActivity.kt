@@ -9,6 +9,9 @@ import com.example.multistreamsearchview.databinding.ActivityMainBinding
 import com.multistream.multistreamsearchview.data_source.DataSource
 import com.multistream.multistreamsearchview.search_view.SearchViewLayout
 import com.multistream.multistreamsearchview.filter.FilterSelection
+import com.multistream.multistreamsearchview.search_view.SearchViewLayout.Companion.CHANNELS
+import com.multistream.multistreamsearchview.search_view.SearchViewLayout.Companion.GAMES
+import com.multistream.multistreamsearchview.search_view.SearchViewLayout.Companion.STREAMS
 
 class MainActivity : AppCompatActivity() {
 
@@ -27,22 +30,18 @@ class MainActivity : AppCompatActivity() {
                     GAMES
                 )
             }
-
         val sourceDownloader3 = DataSource.Builder()
             .setIconDrawable(R.drawable.recent_icon)
             .setName("All")
             .build(SearchViewLayout.SearchData::class.java) {
-                getData(TWITCH, GAMES) + getData2(
-                    TWITCH,
-                    GAMES
-                )
+                getData(TWITCH, GAMES)
             }
 
         val sourceDownloader2 = DataSource.Builder()
             .setIconDrawable(R.drawable.mixer_icon)
             .setName("Mixer")
             .build(SearchViewLayout.SearchData::class.java) {
-                getData(TWITCH, GAMES) + getData2(
+                getData2(
                     TWITCH,
                     GAMES
                 )
@@ -75,10 +74,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     companion object {
-        val GAMES = 0
-        val CHANNELS = 1
-        val STREAMS = 2
-
         val TWITCH = 0
         val MIXER = 1
         val YOUTUBE = 2
@@ -87,28 +82,36 @@ class MainActivity : AppCompatActivity() {
     fun getData(category: Int, platform: Int): List<SearchViewLayout.SearchData> {
         return listOf(
             SearchViewLayout.SearchData(
-                "Greek",
-                "https://static-cdn.jtvnw.net/jtv_user_pictures/774f1524-f873-4e60-b767-b17653a74ab5-profile_image-70x70.png",
+                "FORTNITE",
+                "https://static-cdn.jtvnw.net/ttv-boxart/Fortnite-285x380.jpg",
                 GAMES,
-                TWITCH
+                R.string.games_category,
+                TWITCH,
+                R.drawable.twitch_icon
             ),
             SearchViewLayout.SearchData(
                 "Andy",
-                "https://static-cdn.jtvnw.net/jtv_user_pictures/774f1524-f873-4e60-b767-b17653a74ab5-profile_image-70x70.png",
+                "https://static-cdn.jtvnw.net/previews-ttv/live_user_thekairi78-440x248.jpg",
                 STREAMS,
-                MIXER
+                R.string.streams_category,
+                MIXER,
+                R.drawable.mixer_icon
             ),
             SearchViewLayout.SearchData(
-                "Drd",
-                "https://static-cdn.jtvnw.net/jtv_user_pictures/774f1524-f873-4e60-b767-b17653a74ab5-profile_image-70x70.png",
+                "Call of Duty: Modern Warfare",
+                "https://static-cdn.jtvnw.net/ttv-boxart/Call%20of%20Duty:%20Modern%20Warfare-285x380.jpg",
                 GAMES,
-                TWITCH
+                R.string.games_category,
+                TWITCH,
+                R.drawable.twitch_icon
             ),
             SearchViewLayout.SearchData(
-                "Shr",
-                "https://static-cdn.jtvnw.net/jtv_user_pictures/774f1524-f873-4e60-b767-b17653a74ab5-profile_image-70x70.png",
+                "League of legends",
+                "https://static-cdn.jtvnw.net/ttv-boxart/League%20of%20Legends-285x380.jpg",
                 CHANNELS,
-                TWITCH
+                R.string.channels_category,
+                TWITCH,
+                R.drawable.twitch_icon
             )
         )
     }
@@ -116,28 +119,36 @@ class MainActivity : AppCompatActivity() {
     fun getData2(category: Int, platform: Int): List<SearchViewLayout.SearchData> {
         return listOf(
             SearchViewLayout.SearchData(
-                "Greek",
+                "Valorant",
                 "https://static-cdn.jtvnw.net/jtv_user_pictures/774f1524-f873-4e60-b767-b17653a74ab5-profile_image-70x70.png",
                 GAMES,
-                MIXER
+                R.string.games_category,
+                MIXER,
+                R.drawable.mixer_icon
             ),
             SearchViewLayout.SearchData(
-                "Andy",
+                "Fortnite",
                 "https://static-cdn.jtvnw.net/jtv_user_pictures/774f1524-f873-4e60-b767-b17653a74ab5-profile_image-70x70.png",
                 GAMES,
-                MIXER
+                R.string.games_category,
+                MIXER,
+                R.drawable.mixer_icon
             ),
             SearchViewLayout.SearchData(
                 "Drd",
-                "https://static-cdn.jtvnw.net/jtv_user_pictures/774f1524-f873-4e60-b767-b17653a74ab5-profile_image-70x70.png",
+                "https://static-cdn.jtvnw.net/jtv_user_pictures/cdnthe3rd-profile_image-8246eb11f7f4b215-70x70.jpeg",
                 CHANNELS,
-                TWITCH
+                R.string.channels_category,
+                TWITCH,
+                R.drawable.twitch_icon
             ),
             SearchViewLayout.SearchData(
                 "Shr",
-                "https://static-cdn.jtvnw.net/jtv_user_pictures/774f1524-f873-4e60-b767-b17653a74ab5-profile_image-70x70.png",
+                "https://static-cdn.jtvnw.net/jtv_user_pictures/bobross-profile_image-0b9dd167a9bb16b5-70x70.jpeg",
                 CHANNELS,
-                MIXER
+                R.string.channels_category,
+                MIXER,
+                R.drawable.mixer_icon
             )
         )
     }

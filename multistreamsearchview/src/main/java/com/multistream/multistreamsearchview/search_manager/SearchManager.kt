@@ -9,8 +9,6 @@ import com.multistream.multistreamsearchview.filter.SearchDataFilter
 
 class SearchManager<T> : FilterSelection.OnSelectionListener<T> {
 
-    private var itemsData: List<T>? = null
-
     var itemsLiveData: MutableLiveData<List<T>>? = MutableLiveData()
 
     val filters: MutableList<SearchDataFilter<T>> by lazy { mutableListOf<SearchDataFilter<T>>() }
@@ -19,14 +17,8 @@ class SearchManager<T> : FilterSelection.OnSelectionListener<T> {
 
     var isSourceDownloadEnabled = true
 
-    private suspend fun loadData(data: List<T>? = null): List<T>? {
-        data?.let {
-            itemsData = it
-        }
-        if (isSourceDownloadEnabled) {
-            itemsData = dataSource.getAllData()
-        }
-        return itemsData
+    private suspend fun loadData(data: List<T>? = null) {
+            dataSource.getAllData()
     }
 
     fun addFilter(
@@ -53,14 +45,19 @@ class SearchManager<T> : FilterSelection.OnSelectionListener<T> {
         dataSource?.addSourceDownloader(sourceDownloader)
     }
 
-    suspend fun queryData(query: String) {
-        val data = loadData() ?: return
-        var filterData = data
+    suspend fun queryData(query: String, isQuickSearch: Boolean = false) {
+        loadData()
+        if (dataSource.itemsData == null) return
+        if (isQuickSearch) {
+            itemsLiveData?.postValue(dataSource.itemsData)
+            return
+        }
+        var filterData = dataSource.itemsData
         for (filter in filters) {
             val filteredResult: MutableList<T> = mutableListOf()
             for (filterSelection in filter.filterSelections) {
                 if (filterSelection.isEnabled) {
-                    val result = filterSelection.selectionListener?.getData(filterData)
+                    val result = filterSelection.selectionListener?.getData(filterData!!)
                     filteredResult.addAll(result!!)
                 }
             }

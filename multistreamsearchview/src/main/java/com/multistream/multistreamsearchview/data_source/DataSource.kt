@@ -1,16 +1,27 @@
 package com.multistream.multistreamsearchview.data_source
 
+import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+
 class DataSource<T> {
+
+    var itemsData: List<T>? = null
 
     val sourceDownloads: MutableList<SourceDownloader<T>> by lazy { mutableListOf<SourceDownloader<T>>() }
 
-    suspend fun getAllData(): List<T> {
-        val mutableList: MutableList<T> = mutableListOf()
-        sourceDownloads.forEach {
-            if (it.isEnabled) mutableList.addAll(it.getData())
-
+    suspend fun getAllData() {
+        coroutineScope {
+            val mutableList: MutableList<T> = mutableListOf()
+            val jobs  =  sourceDownloads.map {
+             async { if (it.isEnabled) it.getData() else null }
+            }
+            jobs.awaitAll().forEach {
+                if(!it.isNullOrEmpty()) mutableList.addAll(it)
+            }
+            itemsData = mutableList
         }
-        return mutableList
     }
 
     fun addSourceDownloader(sourceDownloader: SourceDownloader<T>) {

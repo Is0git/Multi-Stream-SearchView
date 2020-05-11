@@ -2,6 +2,7 @@ package com.multistream.multistreamsearchview.search_view
 
 import android.content.Context
 import android.content.res.Resources
+import android.graphics.Typeface
 import android.transition.TransitionInflater
 import android.transition.TransitionManager
 import android.util.AttributeSet
@@ -10,6 +11,8 @@ import android.view.View
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.widget.SearchView
+import androidx.annotation.DrawableRes
+import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.*
@@ -28,14 +31,18 @@ import com.multistream.multistreamsearchview.data_sync.MultipleSelectionDataSync
 import com.multistream.multistreamsearchview.filter.FilterLayout
 import com.multistream.multistreamsearchview.recent_search.RecentListAdapter
 import com.multistream.multistreamsearchview.search_manager.SearchManager
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.launch
+import com.multistream.multistreamsearchview.search_result.SearchListAdapter
+import kotlinx.coroutines.*
 
 
 class SearchViewLayout : ConstraintLayout, SearchView.OnQueryTextListener,
     OnItemClickListener {
+
+    companion object {
+        val GAMES = 0
+        val CHANNELS = 1
+        val STREAMS = 2
+    }
 
     lateinit var headlineText: MaterialTextView
 
@@ -53,18 +60,52 @@ class SearchViewLayout : ConstraintLayout, SearchView.OnQueryTextListener,
 
     lateinit var latestSearchesText: MaterialTextView
 
+    var debounceLength = 1000L
+
     var searchManager = SearchManager<SearchData>()
 
     var headlineTextString: String = resources.getString(R.string.search)
 
     var initializeDefaultFilters: Boolean = false
 
-    var searchListAdapter =
-        SearchListAdapter()
+    private var searchListAdapter = SearchListAdapter()
 
-    var latestSearchesAdapter = LatestSearchedAdapter(listOf(SearchData("Game of thrones", platform = 1),SearchData("Game of thrones", platform = 1), SearchData("Game of thrones", platform = 1) ,SearchData("Game of thrones", platform = 1)))
+    var latestSearchesAdapter = LatestSearchedAdapter(
+        listOf(
+            SearchData(
+                "Game of thrones",
+                platform = 1,
+                categoryStringId = R.string.games_category,
+                platformResId = R.drawable.tune_icon,
+                imageUrl = "https://static-cdn.jtvnw.net/ttv-boxart/Call%20of%20Duty:%20Modern%20Warfare-285x380.jpg"
+            ),
+            SearchData(
+                "Game of thrones",
+                platform = 1,
+                categoryStringId = R.string.games_category,
+                platformResId = R.drawable.tune_icon,
+                imageUrl = "https://static-cdn.jtvnw.net/ttv-boxart/Fortnite-285x380.jpg"
+            ),
+            SearchData(
+                "Game of thrones",
+                platform = 1,
+                categoryStringId = R.string.games_category,
+                platformResId = R.drawable.tune_icon,
+                imageUrl = "https://static-cdn.jtvnw.net/ttv-boxart/Call%20of%20Duty:%20Modern%20Warfare-285x380.jpg"
+            ),
+            SearchData(
+                "Game of thrones",
+                platform = 1,
+                categoryStringId = R.string.games_category,
+                platformResId = R.drawable.tune_icon,
+                imageUrl = "https://static-cdn.jtvnw.net/ttv-boxart/Fortnite-285x380.jpg"
+            )
+        )
+    )
 
     var loadDataJob: Job? = null
+
+    var quickQueryJob: Job? = null
 
     val multipleSelectionDataSync: MultipleSelectionDataSync<SearchData> by lazy { MultipleSelectionDataSync<SearchData>() }
 
@@ -126,6 +167,14 @@ class SearchViewLayout : ConstraintLayout, SearchView.OnQueryTextListener,
 
     override fun onQueryTextChange(newText: String?): Boolean {
         onType(newText)
+        if (!newText.isNullOrBlank()) {
+            if (quickQueryJob != null && quickQueryJob!!.isActive) quickQueryJob?.cancel()
+                quickQueryJob = CoroutineScope(Dispatchers.Default).launch {
+                    delay(debounceLength)
+                    searchManager.queryData(newText, true)
+                }
+
+        }
         return true
     }
 
@@ -133,7 +182,9 @@ class SearchViewLayout : ConstraintLayout, SearchView.OnQueryTextListener,
         var title: String? = null,
         var imageUrl: String? = null,
         var category: Int? = null,
-        var platform: Int
+        @StringRes var categoryStringId: Int,
+        var platform: Int,
+        @DrawableRes var platformResId: Int
     )
 
     private fun init(context: Context?, attrs: AttributeSet? = null) {
@@ -160,7 +211,7 @@ class SearchViewLayout : ConstraintLayout, SearchView.OnQueryTextListener,
         }
         filterLayout.getFilteredObserver()?.observe(
             (context as AppCompatActivity),
-            Observer { searchListAdapter.data = it })
+            Observer { searchListAdapter.searchData = it })
         attrs?.also {
             val typedArray = context?.obtainStyledAttributes(
                 attrs,
@@ -176,7 +227,8 @@ class SearchViewLayout : ConstraintLayout, SearchView.OnQueryTextListener,
         }
         headlineText = MaterialTextView(getContext()).apply {
             id = R.id.search_text
-            text = headlineTextString
+            text = resources.getString(R.string.search)
+            typeface = Typeface.DEFAULT_BOLD
             TextViewCompat.setTextAppearance(
                 this,
                 R.style.TextAppearance_MaterialComponents_Headline3
@@ -220,6 +272,8 @@ class SearchViewLayout : ConstraintLayout, SearchView.OnQueryTextListener,
                 resources,
                 R.drawable.rounded_search_view, null
             )
+            val backgroundView = this.findViewById(androidx.appcompat.R.id.search_plate) as View?
+            backgroundView?.background = null
             elevation = 30f
             this.setOnQueryTextListener(this@SearchViewLayout)
         }
@@ -253,6 +307,7 @@ class SearchViewLayout : ConstraintLayout, SearchView.OnQueryTextListener,
                     R.color.colorSurface, null
                 )
             )
+
             setOnClickListener { filterAnimation() }
         }
         dataSourceRecyclerView = RecyclerView(context).apply {
@@ -265,13 +320,19 @@ class SearchViewLayout : ConstraintLayout, SearchView.OnQueryTextListener,
             }
             scrollBarSize = 0
             overScrollMode = View.OVER_SCROLL_NEVER
-            layoutManager = LinearLayoutManager(context).also { it.orientation = RecyclerView.HORIZONTAL }
+            layoutManager =
+                LinearLayoutManager(context).also { it.orientation = RecyclerView.HORIZONTAL }
         }
         searchRecyclerView = RecyclerView(context).apply {
-            layoutParams = LayoutParams(MATCH_PARENT, 950).also {
+            setBackgroundColor(ResourcesCompat.getColor(resources, R.color.colorLight, null))
+            layoutParams = LayoutParams(MATCH_PARENT, MATCH_CONSTRAINT).also {
                 it.bottomToBottom = PARENT_ID
+                it.topMargin = convertDpToPixel(2, resources)
+                it.topToBottom = R.id.search_view
             }
+            visibility = View.INVISIBLE
             layoutManager = LinearLayoutManager(context)
+            elevation = 10f
             adapter = searchListAdapter
         }
         latestSearchesText = MaterialTextView(getContext()).apply {
@@ -283,8 +344,12 @@ class SearchViewLayout : ConstraintLayout, SearchView.OnQueryTextListener,
                 topMargin = convertDpToPixel(25, resources)
             }
             maxLines = 1
+            typeface = Typeface.DEFAULT_BOLD
             text = getContext().getString(R.string.latest_searches)
-            TextViewCompat.setTextAppearance(this, R.style.TextAppearance_MaterialComponents_Headline5)
+            TextViewCompat.setTextAppearance(
+                this,
+                R.style.TextAppearance_MaterialComponents_Headline5
+            )
         }
         latestSearchesList = RecyclerView(context).apply {
             layoutManager = LinearLayoutManager(context)
@@ -295,7 +360,7 @@ class SearchViewLayout : ConstraintLayout, SearchView.OnQueryTextListener,
                 bottomToBottom = PARENT_ID
                 topMargin = convertDpToPixel(10, resources)
             }
-            overScrollMode = View.OVER_SCROLL_NEVER
+            overScrollMode = View.OVER_SCROLL_IF_CONTENT_SCROLLS
             adapter = latestSearchesAdapter
         }
         val list = listOf(
@@ -356,7 +421,8 @@ class SearchViewLayout : ConstraintLayout, SearchView.OnQueryTextListener,
     }
 
     private fun initDataSource(sourceDownloads: MutableList<DataSource.SourceDownloader<SearchData>>) {
-        dataSourceAdapter = DataSourceAdapter(sourceDownloads).also { dataSourceRecyclerView.adapter = it }
+        dataSourceAdapter =
+            DataSourceAdapter(sourceDownloads).also { dataSourceRecyclerView.adapter = it }
     }
 
     private fun onSearch() {
@@ -389,11 +455,18 @@ class SearchViewLayout : ConstraintLayout, SearchView.OnQueryTextListener,
                 )
             width = MATCH_CONSTRAINT
         }
-        searchView.background = ResourcesCompat.getDrawable(resources, R.drawable.rounded_search_view, null)
+        searchView.background =
+            ResourcesCompat.getDrawable(resources, R.drawable.rounded_search_view, null)
     }
 
     private fun onType(text: String?) {
-        recentSearchesList.visibility = if (text.isNullOrBlank()) View.VISIBLE else View.INVISIBLE
+        if (text.isNullOrBlank()) {
+            recentSearchesList.visibility = View.VISIBLE
+            searchRecyclerView.visibility = View.INVISIBLE
+        } else {
+            recentSearchesList.visibility = View.INVISIBLE
+            searchRecyclerView.visibility = View.VISIBLE
+        }
     }
 
     override fun onClick(position: Int) {
