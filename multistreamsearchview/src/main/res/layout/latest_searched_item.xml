@@ -37,15 +37,20 @@
         app:cardElevation="6dp"
         app:layout_constraintStart_toEndOf="@id/imageCard"
         app:layout_constraintTop_toTopOf="@+id/imageCard">
-        <LinearLayout
+        <androidx.constraintlayout.widget.ConstraintLayout
             android:orientation="vertical"
             android:layout_width="match_parent"
             android:layout_height="match_parent">
             <com.google.android.material.textview.MaterialTextView
                 style="@style/TextAppearance.MaterialComponents.Body1"
-                android:layout_width="match_parent"
+                android:id="@+id/searchedName"
+                android:layout_width="0dp"
                 android:lines="1"
+                android:textStyle="bold"
                 android:text="VALORANT"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
                 android:layout_marginTop="8dp"
                 android:layout_marginStart="8dp"
                 android:layout_marginEnd="8dp"
@@ -53,25 +58,34 @@
 
             <com.google.android.material.textview.MaterialTextView
                 style="@style/TextAppearance.MaterialComponents.Body2"
-                android:layout_width="match_parent"
+                android:id="@+id/category"
+                android:layout_width="0dp"
                 android:lines="2"
+                app:layout_constraintTop_toBottomOf="@id/searchedName"
                 android:text="GAMES"
+                app:layout_constraintStart_toStartOf="@id/searchedName"
+                app:layout_constraintEnd_toEndOf="@id/searchedName"
+                android:textStyle="bold"
                 android:layout_marginTop="8dp"
-                android:layout_marginStart="8dp"
                 android:layout_marginEnd="8dp"
                 android:layout_height="wrap_content"/>
 
             <com.google.android.material.textview.MaterialTextView
-                style="@style/TextAppearance.MaterialComponents.Body2"
+                style="@style/TextAppearance.MaterialComponents.Caption"
+                android:id="@+id/date"
                 android:layout_width="match_parent"
                 android:lines="2"
-                android:text="2020.05.11"
+                app:layout_constraintTop_toBottomOf="@id/category"
+                app:layout_constraintStart_toStartOf="@id/category"
+                app:layout_constraintEnd_toEndOf="@id/category"
+                android:text="YESTERDAY"
+                android:textStyle="bold"
                 android:gravity="bottom"
                 android:layout_gravity="bottom"
                 android:layout_marginTop="8dp"
                 android:layout_marginStart="8dp"
                 android:layout_marginEnd="8dp"
                 android:layout_height="wrap_content"/>
-        </LinearLayout>
+        </androidx.constraintlayout.widget.ConstraintLayout>
     </com.google.android.material.card.MaterialCardView>
 </androidx.constraintlayout.widget.ConstraintLayout>

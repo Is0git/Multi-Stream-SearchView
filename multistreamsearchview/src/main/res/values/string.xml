@@ -24,4 +24,6 @@
     <string name="latest_searches">LATEST SEARCHES</string>
     <string name="results">%d results</string>
     <item type="id" name="latest_search_list"/>
+    <item type="id" name="recent_searches_list"/>
+    <item type="id" name="all_data_source"/>
 </resources>

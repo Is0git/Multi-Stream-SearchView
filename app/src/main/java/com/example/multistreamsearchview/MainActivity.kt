@@ -7,6 +7,7 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.databinding.DataBindingUtil
 import com.example.multistreamsearchview.databinding.ActivityMainBinding
 import com.multistream.multistreamsearchview.data_source.DataSource
+import com.multistream.multistreamsearchview.databinding.SearchLayoutBinding
 import com.multistream.multistreamsearchview.search_view.SearchViewLayout
 import com.multistream.multistreamsearchview.filter.FilterSelection
 import com.multistream.multistreamsearchview.search_view.SearchViewLayout.Companion.CHANNELS
@@ -15,11 +16,11 @@ import com.multistream.multistreamsearchview.search_view.SearchViewLayout.Compan
 
 class MainActivity : AppCompatActivity() {
 
-    lateinit var binding: ActivityMainBinding
+    lateinit var binding: SearchLayoutBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = DataBindingUtil.setContentView(this, R.layout.activity_main)
+        binding = DataBindingUtil.setContentView(this, R.layout.search_layout)
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
         val sourceDownloader = DataSource.Builder()
             .setIconDrawable(R.drawable.twitch_icon)
@@ -27,12 +28,7 @@ class MainActivity : AppCompatActivity() {
             .build(SearchViewLayout.SearchData::class.java) {
                 getData(TWITCH, GAMES)
             }
-        val sourceDownloader3 = DataSource.Builder()
-            .setIconDrawable(R.drawable.recent_icon)
-            .setName("All")
-            .build(SearchViewLayout.SearchData::class.java) {
-                getData(TWITCH, GAMES)
-            }
+
 
         val sourceDownloader2 = DataSource.Builder()
             .setIconDrawable(R.drawable.mixer_icon)
@@ -43,8 +39,6 @@ class MainActivity : AppCompatActivity() {
                     GAMES
                 )
             }
-        binding.searchLayout.addSourceDownloader(sourceDownloader3)
-
         binding.searchLayout.addSourceDownloader(sourceDownloader)
 
         binding.searchLayout.addSourceDownloader(sourceDownloader2)

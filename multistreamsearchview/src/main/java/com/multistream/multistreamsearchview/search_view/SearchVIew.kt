@@ -3,12 +3,11 @@ package com.multistream.multistreamsearchview.search_view
 import android.content.Context
 import android.content.res.ColorStateList
 import android.content.res.Resources
-import android.graphics.Typeface
 import android.transition.TransitionInflater
 import android.transition.TransitionManager
 import android.util.AttributeSet
 import android.util.DisplayMetrics
-import android.util.Log
+import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
@@ -17,18 +16,15 @@ import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.motion.widget.MotionLayout
-import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.*
+import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.ViewCompat
-import androidx.core.widget.TextViewCompat
 import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.github.ybq.android.spinkit.SpinKitView
-import com.github.ybq.android.spinkit.sprite.Sprite
-import com.github.ybq.android.spinkit.style.DoubleBounce
-import com.github.ybq.android.spinkit.style.FoldingCube
+import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.textview.MaterialTextView
@@ -43,7 +39,7 @@ import com.multistream.multistreamsearchview.search_manager.OnQueryListener
 import com.multistream.multistreamsearchview.search_manager.SearchManager
 import com.multistream.multistreamsearchview.search_result.SearchListAdapter
 import kotlinx.coroutines.*
-import kotlin.math.absoluteValue
+import javax.xml.transform.Source
 
 
 class SearchViewLayout : MotionLayout, SearchView.OnQueryTextListener,
@@ -73,7 +69,11 @@ class SearchViewLayout : MotionLayout, SearchView.OnQueryTextListener,
 
     lateinit var searchProgressBar: SpinKitView
 
-    var debounceLength = 1500L
+    lateinit var appBarLayout: AppBarLayout
+
+    lateinit var motionLayout: com.multistream.multistreamsearchview.app_bar.AppBarLayout
+
+    private var debounceLength = 1500L
 
     var searchManager = SearchManager<SearchData>(this)
 
@@ -198,6 +198,10 @@ class SearchViewLayout : MotionLayout, SearchView.OnQueryTextListener,
 
     var dataSourceAdapter: DataSourceAdapter? = null
 
+    var selectedButtonColor = R.color.colorAccent
+
+    var defaultButtonColor = R.color.colorSurface
+
     constructor(context: Context?) : super(context) {
         init(context)
     }
@@ -249,7 +253,7 @@ class SearchViewLayout : MotionLayout, SearchView.OnQueryTextListener,
             quickQueryJob = CoroutineScope(Dispatchers.Default).launch {
                 withContext(Dispatchers.Main) { onQueryStart() }
                 delay(debounceLength)
-                searchManager.queryData(newText, true)
+                searchManager.queryData(newText, false)
             }
         }
         return true
@@ -265,12 +269,7 @@ class SearchViewLayout : MotionLayout, SearchView.OnQueryTextListener,
     )
 
     private fun init(context: Context?, attrs: AttributeSet? = null) {
-        setBackground(
-            ResourcesCompat.getDrawable(
-                resources,
-                R.drawable.bg_gradient, null
-            )
-        )
+        searchManager.dataSource.addDefault(SearchData::class.java)
         filterLayout = FilterLayout(searchManager, context).apply {
             this.setBackgroundColor(
                 ResourcesCompat.getColor(
@@ -284,7 +283,7 @@ class SearchViewLayout : MotionLayout, SearchView.OnQueryTextListener,
                 it.marginEnd = 20
             }
             setOnClickListener { filterAnimation() }
-            elevation = 10f
+            elevation = convertDpToPixel(12, resources).toFloat()
         }
         filterLayout.getFilteredObserver()?.observe(
             (context as AppCompatActivity),
@@ -301,169 +300,6 @@ class SearchViewLayout : MotionLayout, SearchView.OnQueryTextListener,
                 false
             )!!
             typedArray.recycle()
-        }
-        headlineText = MaterialTextView(getContext()).apply {
-            id = R.id.search_text
-            text = resources.getString(R.string.search)
-            typeface = Typeface.DEFAULT_BOLD
-            TextViewCompat.setTextAppearance(
-                this,
-                R.style.TextAppearance_MaterialComponents_Headline3
-            )
-            layoutParams = LayoutParams(MATCH_CONSTRAINT, WRAP_CONTENT).apply {
-                topToTop = PARENT_ID
-                startToStart = PARENT_ID
-                marginStart =
-                    convertDpToPixel(
-                        35,
-                        resources
-                    )
-                marginEnd =
-                    convertDpToPixel(
-                        35,
-                        resources
-                    )
-                topMargin =
-                    convertDpToPixel(
-                        50,
-                        resources
-                    )
-                endToEnd = PARENT_ID
-            }
-            alpha = 0.5f
-        }
-        searchView = SearchView(context).apply {
-            id = R.id.search_view
-            layoutParams = LayoutParams(MATCH_CONSTRAINT, 170).apply {
-                endToStart =
-                    R.id.settings_button
-                topToBottom = headlineText.id
-                startToStart = headlineText.id
-                topMargin =
-                    convertDpToPixel(
-                        30,
-                        resources
-                    )
-            }
-            background = ResourcesCompat.getDrawable(
-                resources,
-                R.drawable.rounded_search_view, null
-            )
-            val backgroundView = this.findViewById(androidx.appcompat.R.id.search_plate) as View?
-            backgroundView?.background = null
-            elevation = 30f
-            this.setOnQueryTextListener(this@SearchViewLayout)
-        }
-
-        settingsButton = MaterialButton(context!!).apply {
-            id = R.id.settings_button
-            val dp =
-                convertDpToPixel(
-                    50,
-                    resources
-                )
-            layoutParams = LayoutParams(dp, MATCH_CONSTRAINT).also {
-                it.topToTop = searchView.id
-                it.bottomToBottom = searchView.id
-                it.endToEnd = headlineText.id
-            }
-            this.cornerRadius = 8
-            this.setIconResource(R.drawable.tune_icon)
-            this.iconSize =
-                convertDpToPixel(
-                    25,
-                    resources
-                )
-            this.setIconTintResource(R.color.colorOnSurface)
-            this.iconGravity = MaterialButton.ICON_GRAVITY_TEXT_START
-            this.iconPadding = 0
-            this.elevation = 30f
-            this.setBackgroundColor(
-                ResourcesCompat.getColor(
-                    resources,
-                    R.color.colorSurface, null
-                )
-            )
-            setOnClickListener { filterAnimation() }
-        }
-        dataSourceRecyclerView = RecyclerView(context).apply {
-            id = View.generateViewId()
-            layoutParams = LayoutParams(MATCH_CONSTRAINT, WRAP_CONTENT).apply {
-                this.topToBottom = searchView.id
-                this.startToStart = headlineText.id
-                this.endToEnd = headlineText.id
-                this.topMargin = convertDpToPixel(20, resources)
-            }
-            scrollBarSize = 0
-            overScrollMode = View.OVER_SCROLL_NEVER
-            layoutManager =
-                LinearLayoutManager(context).also { it.orientation = RecyclerView.HORIZONTAL }
-        }
-        searchRecyclerView = RecyclerView(context).apply {
-            id = View.generateViewId()
-            setBackgroundColor(ResourcesCompat.getColor(resources, R.color.colorLight, null))
-            layoutParams = LayoutParams(MATCH_PARENT, MATCH_CONSTRAINT).also {
-                it.bottomToBottom = PARENT_ID
-                it.topMargin = convertDpToPixel(2, resources)
-                it.topToBottom = R.id.search_view
-            }
-            visibility = View.INVISIBLE
-            layoutManager = LinearLayoutManager(context)
-            elevation = 10f
-
-            adapter = searchListAdapter
-        }
-        searchProgressBar = SpinKitView(context).apply {
-            id = View.generateViewId()
-            val size = convertDpToPixel(150, resources)
-            layoutParams = LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply {
-                topToTop = searchRecyclerView.id
-                bottomToBottom = searchRecyclerView.id
-                startToStart = searchRecyclerView.id
-                endToEnd = searchRecyclerView.id
-            }
-            setColor(ResourcesCompat.getColor(resources, R.color.colorOnSecondaryVariant, null))
-            visibility = View.INVISIBLE
-            elevation = 12f
-            setIndeterminateDrawable(DoubleBounce())
-        }
-        latestSearchesText = MaterialTextView(getContext()).apply {
-            id = View.generateViewId()
-            layoutParams = LayoutParams(MATCH_CONSTRAINT, WRAP_CONTENT).apply {
-                topToBottom = dataSourceRecyclerView.id
-                startToStart = headlineText.id
-                endToEnd = headlineText.id
-                topMargin = convertDpToPixel(25, resources)
-            }
-            maxLines = 1
-            typeface = Typeface.DEFAULT_BOLD
-            text = getContext().getString(R.string.latest_searches)
-            setOnClickListener {
-                                            TransitionManager.beginDelayedTransition(this@SearchViewLayout, filterExpandTransition)
-                            latestSearchesList.layoutParams = (latestSearchesList.layoutParams as LayoutParams).also {
-                                it.topToTop = PARENT_ID
-                                it.topToBottom = UNSET
-                            }
-            }
-            TextViewCompat.setTextAppearance(
-                this,
-                R.style.TextAppearance_MaterialComponents_Headline5
-            )
-        }
-        latestSearchesList = RecyclerView(context).apply {
-            setBackgroundColor(ResourcesCompat.getColor(resources, R.color.colorSurface, null))
-            id = R.id.latest_search_list
-            layoutManager = LinearLayoutManager(context)
-            outlineProvider = null
-            layoutParams = LayoutParams(MATCH_CONSTRAINT, MATCH_CONSTRAINT).apply {
-                topToBottom = latestSearchesText.id
-                startToStart = headlineText.id
-                endToEnd = headlineText.id
-                bottomToBottom = PARENT_ID
-                topMargin = convertDpToPixel(10, resources)
-            }
-            overScrollMode = View.OVER_SCROLL_IF_CONTENT_SCROLLS
-            adapter = latestSearchesAdapter
         }
         val list = listOf(
             RecentListAdapter.RecentData(1, "greekgodx", 1589147066, 5),
@@ -484,43 +320,61 @@ class SearchViewLayout : MotionLayout, SearchView.OnQueryTextListener,
             RecentListAdapter.RecentData(1, "drdisresepect", 1589116706 - 36000000, 10)
         )
         recentListAdapter = RecentListAdapter(context, list, this)
-        recentSearchesList = RecyclerView(context).apply {
-            id = View.generateViewId()
+        recentSearchesList = RecyclerView(context!!).apply {
+            id = R.id.recent_searches_list
             setBackgroundColor(
                 ResourcesCompat.getColor(
                     resources,
                     R.color.colorSurface, null
                 )
             )
-            layoutParams = LayoutParams(MATCH_CONSTRAINT, MATCH_CONSTRAINT).apply {
-                startToStart = PARENT_ID
-                endToEnd = PARENT_ID
-                bottomToBottom = PARENT_ID
-                topToBottom = searchView.id
-            }
             visibility = View.GONE
             elevation = 10f
             layoutManager = LinearLayoutManager(context)
             adapter = recentListAdapter
         }
-
-        addView(settingsButton)
-        addView(headlineText)
-        addView(searchView)
-        addView(searchRecyclerView)
         addView(recentSearchesList)
-        addView(dataSourceRecyclerView)
-        addView(latestSearchesText)
-        addView(latestSearchesList)
         addView(filterLayout)
-        addView(searchProgressBar)
-        searchView.setOnSearchClickListener {
-            onSearch()
+    }
+
+    override fun onFinishInflate() {
+        super.onFinishInflate()
+        val coordinatorLayout = findViewById<CoordinatorLayout>(R.id.coordinatorLayout)
+        appBarLayout = coordinatorLayout.findViewById<AppBarLayout>(R.id.app_bar_layout)
+        searchView = appBarLayout.findViewById<SearchView>(R.id.search_view).apply {
+            this.setOnQueryTextListener(this@SearchViewLayout)
+            setOnSearchClickListener {
+                onSearch()
+            }
+            setOnCloseListener {
+                onClose()
+                false
+            }
         }
-        searchView.setOnCloseListener {
-            onClose()
-            false
+        settingsButton = findViewById<MaterialButton>(R.id.settings_button).apply {
+            this.setOnClickListener { filterAnimation() }
         }
+        latestSearchesList = findViewById<RecyclerView>(R.id.searchedList).apply {
+            adapter = latestSearchesAdapter
+        }
+
+        dataSourceRecyclerView = findViewById<RecyclerView>(R.id.data_source_list).apply {
+        }
+        headlineText = appBarLayout.findViewById(R.id.headline)
+        recentSearchesList.layoutParams = LayoutParams(MATCH_CONSTRAINT, MATCH_CONSTRAINT).apply {
+            startToStart = PARENT_ID
+            endToEnd = PARENT_ID
+            bottomToBottom = PARENT_ID
+            topMargin = convertDpToPixel(50, resources)
+            topToTop = PARENT_ID
+        }
+        searchRecyclerView = findViewById<RecyclerView>(R.id.search_list).apply {
+            adapter = searchListAdapter
+        }
+        searchProgressBar = findViewById(R.id.progress_bar)
+        motionLayout = appBarLayout.findViewById(R.id.motionLayout)
+        dataSourceRecyclerView = motionLayout.findViewById(R.id.data_source_list)
+        motionLayout.materialTextView = appBarLayout.findViewById(R.id.latest_search_text)
     }
 
     private fun initDataSource(sourceDownloads: MutableList<DataSource.SourceDownloader<SearchData>>) {
@@ -528,27 +382,63 @@ class SearchViewLayout : MotionLayout, SearchView.OnQueryTextListener,
             DataSourceAdapter(sourceDownloads).also { sourceAdapter ->
                 sourceAdapter.onItemClickListener = object : OnItemClickListener {
                     override fun onClick(position: Int, view: View) {
-                        val colorId = if (view.isSelected) {
-                            R.color.colorSurface
+                        if (dataSourceAdapter?.dataSource?.get(position)!!.id == R.id.all_data_source) {
+                            onDataSourceAllButtonClick(position, view)
                         } else {
-                            R.color.colorOnSecondaryVariant
+                            onDataSourceButtonClick(position, view)
                         }
-                        val color = ResourcesCompat.getColor(resources, colorId, null)
-                        val colorStateList = ColorStateList.valueOf(color)
-                        val affectedView = view.findViewById<View>(R.id.sourceButton)
-                        ViewCompat.setBackgroundTintList(affectedView, colorStateList)
-                        view.isSelected = !view.isSelected
-                        syncDataSourceData(position, view.isSelected)
                     }
                 }
                 dataSourceRecyclerView.adapter = sourceAdapter
             }
     }
 
+    fun onDataSourceButtonClick(position: Int, view: View) {
+        handleButtonSelection(view, position, !view.isSelected)
+        val allButton = getSourceButton(0)
+        if (allButton != null) {
+            handleButtonSelection(allButton, 0, false)
+        }
+    }
+
+    fun onDataSourceAllButtonClick(position: Int, view: View) {
+        view.also {
+            handleButtonSelection(view, 0, true)
+        }
+        (1 until dataSourceAdapter?.dataSource?.count()!!).forEach {
+            val unselectedView = getSourceButton(it)
+            if (unselectedView != null) {
+                handleButtonSelection(unselectedView, it, false)
+            }
+        }
+    }
+
+    private fun handleButtonSelection(view: View, position: Int, isSelected: Boolean) {
+        view.isSelected = isSelected
+        changeButtonState(view, isSelected)
+        syncDataSourceData(position, isSelected)
+    }
+
+    private fun getSourceButton(position: Int): MaterialCardView? {
+        return dataSourceRecyclerView.layoutManager?.getChildAt(position)
+            ?.findViewById(R.id.sourceButton)
+    }
+
+    private fun changeButtonState(view: View, isEnabled: Boolean) {
+        val colorId = if (isEnabled) {
+            selectedButtonColor
+        } else {
+            defaultButtonColor
+        }
+        val color = ResourcesCompat.getColor(resources, colorId, null)
+        val colorStateList = ColorStateList.valueOf(color)
+        ViewCompat.setBackgroundTintList(view, colorStateList)
+
+    }
+
     private fun onSearch() {
         TransitionManager.beginDelayedTransition(this, searchFocusTransition)
         recentSearchesList.visibility = View.VISIBLE
-        headlineText.visibility = View.INVISIBLE
         searchView.layoutParams = (searchView.layoutParams as LayoutParams).apply {
             startToStart = PARENT_ID
             endToStart = settingsButton.id
@@ -556,10 +446,21 @@ class SearchViewLayout : MotionLayout, SearchView.OnQueryTextListener,
             topMargin = 0
             width = MATCH_CONSTRAINT
         }
-        settingsButton.layoutParams = (settingsButton.layoutParams as LayoutParams).also {
-            it.endToEnd = PARENT_ID
+        motionLayout.getConstraintSet(R.id.start).apply {
+            getConstraint(R.id.search_view).layout.apply {
+                topToTop = PARENT_ID
+                topToBottom = UNSET
+                endToStart = R.id.settings_button
+                startToStart = PARENT_ID
+                this.mWidth = MATCH_CONSTRAINT
+                topMargin = 0
+            }
+
+            getConstraint(R.id.settings_button).layout.apply {
+                startToEnd = UNSET
+                endToEnd = PARENT_ID
+            }
         }
-        searchView.background = ResourcesCompat.getDrawable(resources, R.color.colorSurface, null)
     }
 
     private fun onClose() {
@@ -567,23 +468,20 @@ class SearchViewLayout : MotionLayout, SearchView.OnQueryTextListener,
         searchProgressBar.visibility = View.INVISIBLE
         TransitionManager.beginDelayedTransition(this, searchFocusTransition)
         recentSearchesList.visibility = View.GONE
-        headlineText.visibility = View.VISIBLE
-        searchView.layoutParams = (searchView.layoutParams as LayoutParams).apply {
-            startToStart = headlineText.id
-            endToEnd = headlineText.id
-            topToBottom = headlineText.id
-            topToTop = LayoutParams.UNSET
-            topMargin =
-                convertDpToPixel(
-                    50,
-                    resources
-                )
-            width = MATCH_CONSTRAINT
-        }
-        searchView.background =
-            ResourcesCompat.getDrawable(resources, R.drawable.rounded_search_view, null)
-        settingsButton.layoutParams = (settingsButton.layoutParams as LayoutParams).also {
-            it.endToEnd = headlineText.id
+        motionLayout.getConstraintSet(R.id.start).apply {
+            getConstraint(R.id.search_view).layout.apply {
+                topToTop = UNSET
+                topToBottom = R.id.headline
+                endToStart = UNSET
+                startToStart = R.id.headline
+                this.mWidth = convertDpToPixel(50, resources)
+                topMargin = convertDpToPixel(50, resources)
+            }
+
+            getConstraint(R.id.settings_button).layout.apply {
+                startToEnd = R.id.search_view
+                endToEnd = UNSET
+            }
         }
     }
 
@@ -601,9 +499,10 @@ class SearchViewLayout : MotionLayout, SearchView.OnQueryTextListener,
         searchView.setQuery(recentListAdapter.recentData?.get(position)?.searchText, true)
     }
 
+    @Suppress("UNCHECKED_CAST")
     fun initSearchView() {
         filterLayout.createFilters()
-        initDataSource(searchManager.dataSource.sourceDownloads)
+        initDataSource(searchManager.dataSource.sourceDownloads as MutableList<DataSource.SourceDownloader<SearchData>>)
     }
 
     private fun filterAnimation() {
@@ -614,7 +513,6 @@ class SearchViewLayout : MotionLayout, SearchView.OnQueryTextListener,
                 bottomToBottom = PARENT_ID
                 isFilterLayoutHidden = false
             }
-
         } else {
             filterLayout.layoutParams = (filterLayout.layoutParams as LayoutParams).apply {
                 topToBottom = PARENT_ID
@@ -649,7 +547,7 @@ class SearchViewLayout : MotionLayout, SearchView.OnQueryTextListener,
         searchProgressBar.visibility = View.INVISIBLE
     }
 
-    fun syncDataSourceData(position: Int, isSelected: Boolean) {
+    private fun syncDataSourceData(position: Int, isSelected: Boolean) {
         dataSourceAdapter?.dataSource?.get(position)?.isEnabled = isSelected
     }
 }

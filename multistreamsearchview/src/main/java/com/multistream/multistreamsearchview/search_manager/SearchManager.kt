@@ -6,6 +6,7 @@ import androidx.lifecycle.MutableLiveData
 import com.multistream.multistreamsearchview.data_source.DataSource
 import com.multistream.multistreamsearchview.filter.FilterSelection
 import com.multistream.multistreamsearchview.filter.SearchDataFilter
+import com.multistream.multistreamsearchview.search_view.SearchViewLayout
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -30,6 +31,7 @@ class SearchManager<T>() : FilterSelection.OnSelectionListener<T> {
         withContext(Dispatchers.Main) { onQueryListener?.onDataLoad() }
         dataSource.getAllData()
     }
+
 
     fun addFilter(
         name: String,
@@ -68,20 +70,27 @@ class SearchManager<T>() : FilterSelection.OnSelectionListener<T> {
             return
         }
         withContext(Dispatchers.Main) { onQueryListener?.onQueryFilter() }
-        var filterData = dataSource.itemsData
+        val result  = filter(dataSource.itemsData!!)
+
+        withContext(Dispatchers.Main) { onQueryListener?.onQueryCompleted() }
+        itemsLiveData?.postValue(result)
+    }
+
+   suspend fun filter(data: List<T>) : List<T> {
+       onQueryListener?.onQueryFilter()
+        var filterData = data
         for (filter in filters) {
             val filteredResult: MutableList<T> = mutableListOf()
             for (filterSelection in filter.filterSelections) {
                 if (filterSelection.isEnabled) {
-                    val result = filterSelection.selectionListener?.getData(filterData!!)
+                    val result = filterSelection.selectionListener?.getData(filterData)
                     filteredResult.addAll(result!!)
                 }
             }
             filterData = filteredResult
             if (filterData.isEmpty()) break
         }
-        withContext(Dispatchers.Main) { onQueryListener?.onQueryCompleted() }
-        itemsLiveData?.postValue(filterData)
+        return filterData
     }
 
     private fun hasEnabledFilters(filter: SearchDataFilter<T>): Boolean {

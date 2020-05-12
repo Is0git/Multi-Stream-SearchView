@@ -9,7 +9,6 @@
         android:layout_width="80dp"
         android:layout_height="80dp"
         app:cardUseCompatPadding="true"
-        app:icon="@drawable/recent_icon"
         app:elevation="2dp"
         app:cardCornerRadius="15dp"
         app:layout_goneMarginTop="8dp"

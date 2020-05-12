@@ -7,6 +7,7 @@ import android.widget.ImageView
 import androidx.core.content.res.ResourcesCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.card.MaterialCardView
 import com.google.android.material.textview.MaterialTextView
 import com.multistream.multistreamsearchview.R
 import com.multistream.multistreamsearchview.search_view.OnItemClickListener
@@ -38,8 +39,10 @@ class DataSourceAdapter(var dataSource: MutableList<DataSource.SourceDownloader<
         var onItemClickListener: OnItemClickListener? = null
 
         init {
-            view.setOnClickListener { onItemClickListener?.onClick(adapterPosition, view) }
+            view.setOnClickListener { onItemClickListener?.onClick(adapterPosition, sourceButton) }
         }
+
+        var sourceButton: MaterialCardView = view.findViewById(R.id.sourceButton)
 
         var icon: ImageView = view.findViewById(R.id.sourceIcon)
 //        var button: MaterialButton = view.findViewById(R.id.sourceButton)

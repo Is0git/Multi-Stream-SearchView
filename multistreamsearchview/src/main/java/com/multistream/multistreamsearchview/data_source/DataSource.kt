@@ -1,7 +1,8 @@
 package com.multistream.multistreamsearchview.data_source
 
 import android.view.View
-import kotlinx.coroutines.Deferred
+import com.multistream.multistreamsearchview.R
+import com.multistream.multistreamsearchview.search_view.SearchViewLayout
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -10,16 +11,34 @@ class DataSource<T> {
 
     var itemsData: List<T>? = null
 
-    val sourceDownloads: MutableList<SourceDownloader<T>> by lazy { mutableListOf<SourceDownloader<T>>() }
+    val sourceDownloads: MutableList<SourceDownloader<*>> by lazy { mutableListOf<SourceDownloader<*>>() }
 
+    inline fun<reified T> addDefault(clazz: Class<out T>) {
+        val allSourceDownloader = Builder()
+            .setIconDrawable(R.drawable.recent_icon)
+            .setName("All")
+            .isAllSource(true)
+            .build(clazz)
+
+        sourceDownloads.add(allSourceDownloader)
+    }
+
+    @Suppress("UNCHECKED_CAST")
     suspend fun getAllData() {
         coroutineScope {
             val mutableList: MutableList<T> = mutableListOf()
-            val jobs  =  sourceDownloads.map {
-             async { if (it.isEnabled) it.getData() else null }
+            val jobs  =  if (sourceDownloads.isNotEmpty() && sourceDownloads.first().isEnabled) {
+                (1 until sourceDownloads.count()).map {
+                    val sourceDownload = sourceDownloads[it]
+                    async { sourceDownload.getData() }
+                }
+            } else {
+                sourceDownloads.map {
+                    async { if (it.isEnabled) it.getData() else null }
+                }
             }
             jobs.awaitAll().forEach {
-                if(!it.isNullOrEmpty()) mutableList.addAll(it)
+                if(!it.isNullOrEmpty()) mutableList.addAll(it as List<T>)
             }
             itemsData = mutableList
         }
@@ -50,6 +69,8 @@ class DataSource<T> {
 
         private var name: String? = null
 
+        private var isAll = false
+
         fun setName(name: String): Builder {
             this.name = name
             return this
@@ -65,10 +86,15 @@ class DataSource<T> {
             return this
         }
 
-        fun <T> build(clazz: Class<T>, getData: () -> List<T>): SourceDownloader<T> {
+        fun isAllSource(isAllEnabled: Boolean) : Builder {
+            this.isAll = isAllEnabled
+            return this
+        }
+
+        fun <T> build(clazz: Class<T>, getData: (() -> List<T>)? = null): SourceDownloader<T> {
             return object : SourceDownloader<T> {
 
-                override var id: Int = View.generateViewId()
+                override var id: Int = if (isAll) R.id.all_data_source else View.generateViewId()
 
                 override var isEnabled: Boolean = this@Builder.isEnabled
 
@@ -77,7 +103,7 @@ class DataSource<T> {
                 override var name: String = this@Builder.name ?: "no name"
 
                 override suspend fun getData(): List<T> {
-                    return getData()
+                    return if (getData == null) emptyList() else getData()
                 }
             }
         }

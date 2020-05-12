@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.multistream.multistreamsearchview.app_bar.AppBarLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    app:layoutDescription="@xml/search_view_scene"
+    android:layout_marginBottom="30dp"
+    android:id="@+id/motionLayout"
+    app:layout_scrollFlags="scroll|enterAlways|snap|exitUntilCollapsed"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/headline"
+        style="@style/TextAppearance.MaterialComponents.Headline3"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="35dp"
+        android:layout_marginTop="50dp"
+        android:text="@string/search"
+        android:shadowDy="2"
+        android:shadowDx="2"
+        android:shadowRadius="5"
+        android:shadowColor="@color/headlineShadowColor"
+        android:textColor="@color/colorSurface"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <SearchView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/rounded_search_view"
+        android:id="@+id/search_view" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/settings_button"
+        android:layout_width="50dp"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="@id/search_view"
+        app:layout_constraintEnd_toEndOf="@id/headline"
+        app:layout_constraintTop_toBottomOf="@id/search_view"
+        app:layout_constraintTop_toTopOf="@id/search_view"
+        android:elevation="9dp"
+        app:cornerRadius="1dp"
+        app:backgroundTint="@color/colorSurface"
+        app:icon="@drawable/tune_icon"
+        app:iconTint="@color/colorOnSurface"
+        app:iconGravity="textStart"
+        app:iconPadding="0dp"
+        app:iconSize="20dp" />
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/data_source_list"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="35dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="@id/search_view"
+        app:layout_constraintTop_toBottomOf="@id/search_view"
+        android:orientation="horizontal"
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+        tools:listitem="@layout/data_source_item"/>
+</com.multistream.multistreamsearchview.app_bar.AppBarLayout>
