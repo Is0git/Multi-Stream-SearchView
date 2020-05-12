@@ -164,11 +164,6 @@ class FilterLayout : ConstraintLayout, CompoundButton.OnCheckedChangeListener {
         } else {
             Log.e("filter", "no filter found")
         }
-        searchFilterManager?.filters!![1].filterSelections.forEach {
-            Log.d("filter", "filter: ${it.dataName} enabled: ${it.isEnabled}")
-
-        }
-        Log.d("filter", "-------")
     }
 
     fun getFilteredObserver(): LiveData<List<SearchViewLayout.SearchData>>? {

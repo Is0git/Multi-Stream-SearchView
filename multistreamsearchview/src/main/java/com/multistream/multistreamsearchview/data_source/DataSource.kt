@@ -1,5 +1,6 @@
 package com.multistream.multistreamsearchview.data_source
 
+import android.view.View
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -36,12 +37,14 @@ class DataSource<T> {
 
         var name: String
 
+        var id: Int
+
         suspend fun getData(): List<T>
     }
 
     class Builder {
 
-        private var isEnabled: Boolean = true
+        private var isEnabled: Boolean = false
 
         private var iconDrawable: Int = 0
 
@@ -64,6 +67,9 @@ class DataSource<T> {
 
         fun <T> build(clazz: Class<T>, getData: () -> List<T>): SourceDownloader<T> {
             return object : SourceDownloader<T> {
+
+                override var id: Int = View.generateViewId()
+
                 override var isEnabled: Boolean = this@Builder.isEnabled
 
                 override var iconDrawable: Int = this@Builder.iconDrawable

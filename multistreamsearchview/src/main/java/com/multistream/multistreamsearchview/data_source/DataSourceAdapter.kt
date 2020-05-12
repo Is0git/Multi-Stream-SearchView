@@ -9,13 +9,16 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.textview.MaterialTextView
 import com.multistream.multistreamsearchview.R
+import com.multistream.multistreamsearchview.search_view.OnItemClickListener
 import com.multistream.multistreamsearchview.search_view.SearchViewLayout
 
 class DataSourceAdapter(var dataSource: MutableList<DataSource.SourceDownloader<SearchViewLayout.SearchData>>)  : RecyclerView.Adapter<DataSourceAdapter.DataSourceViewHolder>() {
 
+    var onItemClickListener: OnItemClickListener? = null
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): DataSourceViewHolder {
         val view = LayoutInflater.from(parent.context).inflate(R.layout.data_source_item, parent, false)
-        return DataSourceViewHolder(view)
+        return DataSourceViewHolder(view).also { it.onItemClickListener = this.onItemClickListener }
     }
 
     override fun getItemCount(): Int {
@@ -31,6 +34,12 @@ class DataSourceAdapter(var dataSource: MutableList<DataSource.SourceDownloader<
     }
     class DataSourceViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         var sourceText: MaterialTextView = view.findViewById(R.id.sourceText)
+
+        var onItemClickListener: OnItemClickListener? = null
+
+        init {
+            view.setOnClickListener { onItemClickListener?.onClick(adapterPosition, view) }
+        }
 
         var icon: ImageView = view.findViewById(R.id.sourceIcon)
 //        var button: MaterialButton = view.findViewById(R.id.sourceButton)

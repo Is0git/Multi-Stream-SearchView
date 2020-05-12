@@ -68,7 +68,7 @@ class RecentListAdapter(var context: Context?,
         }
 
         return viewHolder.apply {
-            itemView.setOnClickListener { clickListener?.onClick(adapterPosition) }
+            itemView.setOnClickListener { clickListener?.onClick(adapterPosition, itemView) }
         }
     }
 
@@ -80,7 +80,7 @@ class RecentListAdapter(var context: Context?,
         when (holder) {
             is DataViewHolder -> {
                 holder.titleText.text = recentData?.get(position)?.searchText
-                holder.searchedCount.text = recentData?.get(position)?.searchesCount.toString()
+                holder.searchedCount.text = holder.searchedCount.context.getString(R.string.results, recentData?.get(position)?.searchesCount)
             }
             is DateViewHolder -> holder.dateText.text = recentData?.get(position)?.dateText
         }

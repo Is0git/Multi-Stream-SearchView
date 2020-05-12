@@ -1,12 +1,14 @@
 package com.multistream.multistreamsearchview.search_view
 
 import android.content.Context
+import android.content.res.ColorStateList
 import android.content.res.Resources
 import android.graphics.Typeface
 import android.transition.TransitionInflater
 import android.transition.TransitionManager
 import android.util.AttributeSet
 import android.util.DisplayMetrics
+import android.util.Log
 import android.view.View
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
@@ -14,14 +16,21 @@ import android.widget.SearchView
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
+import androidx.constraintlayout.motion.widget.MotionLayout
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.*
 import androidx.core.content.res.ResourcesCompat
+import androidx.core.view.ViewCompat
 import androidx.core.widget.TextViewCompat
 import androidx.lifecycle.Observer
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.github.ybq.android.spinkit.SpinKitView
+import com.github.ybq.android.spinkit.sprite.Sprite
+import com.github.ybq.android.spinkit.style.DoubleBounce
+import com.github.ybq.android.spinkit.style.FoldingCube
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.card.MaterialCardView
 import com.google.android.material.textview.MaterialTextView
 import com.multistream.multistreamsearchview.filter.FilterSelection
 import com.multistream.multistreamsearchview.R
@@ -30,13 +39,15 @@ import com.multistream.multistreamsearchview.data_source.DataSourceAdapter
 import com.multistream.multistreamsearchview.data_sync.MultipleSelectionDataSync
 import com.multistream.multistreamsearchview.filter.FilterLayout
 import com.multistream.multistreamsearchview.recent_search.RecentListAdapter
+import com.multistream.multistreamsearchview.search_manager.OnQueryListener
 import com.multistream.multistreamsearchview.search_manager.SearchManager
 import com.multistream.multistreamsearchview.search_result.SearchListAdapter
 import kotlinx.coroutines.*
+import kotlin.math.absoluteValue
 
 
-class SearchViewLayout : ConstraintLayout, SearchView.OnQueryTextListener,
-    OnItemClickListener {
+class SearchViewLayout : MotionLayout, SearchView.OnQueryTextListener,
+    OnItemClickListener, OnQueryListener {
 
     companion object {
         val GAMES = 0
@@ -60,9 +71,11 @@ class SearchViewLayout : ConstraintLayout, SearchView.OnQueryTextListener,
 
     lateinit var latestSearchesText: MaterialTextView
 
-    var debounceLength = 1000L
+    lateinit var searchProgressBar: SpinKitView
 
-    var searchManager = SearchManager<SearchData>()
+    var debounceLength = 1500L
+
+    var searchManager = SearchManager<SearchData>(this)
 
     var headlineTextString: String = resources.getString(R.string.search)
 
@@ -72,6 +85,62 @@ class SearchViewLayout : ConstraintLayout, SearchView.OnQueryTextListener,
 
     var latestSearchesAdapter = LatestSearchedAdapter(
         listOf(
+            SearchData(
+                "Game of thrones",
+                platform = 1,
+                categoryStringId = R.string.games_category,
+                platformResId = R.drawable.tune_icon,
+                imageUrl = "https://static-cdn.jtvnw.net/ttv-boxart/Call%20of%20Duty:%20Modern%20Warfare-285x380.jpg"
+            ),
+            SearchData(
+                "Game of thrones",
+                platform = 1,
+                categoryStringId = R.string.games_category,
+                platformResId = R.drawable.tune_icon,
+                imageUrl = "https://static-cdn.jtvnw.net/ttv-boxart/Fortnite-285x380.jpg"
+            ),
+            SearchData(
+                "Game of thrones",
+                platform = 1,
+                categoryStringId = R.string.games_category,
+                platformResId = R.drawable.tune_icon,
+                imageUrl = "https://static-cdn.jtvnw.net/ttv-boxart/Call%20of%20Duty:%20Modern%20Warfare-285x380.jpg"
+            ),
+            SearchData(
+                "Game of thrones",
+                platform = 1,
+                categoryStringId = R.string.games_category,
+                platformResId = R.drawable.tune_icon,
+                imageUrl = "https://static-cdn.jtvnw.net/ttv-boxart/Fortnite-285x380.jpg"
+            ),
+            SearchData(
+                "Game of thrones",
+                platform = 1,
+                categoryStringId = R.string.games_category,
+                platformResId = R.drawable.tune_icon,
+                imageUrl = "https://static-cdn.jtvnw.net/ttv-boxart/Call%20of%20Duty:%20Modern%20Warfare-285x380.jpg"
+            ),
+            SearchData(
+                "Game of thrones",
+                platform = 1,
+                categoryStringId = R.string.games_category,
+                platformResId = R.drawable.tune_icon,
+                imageUrl = "https://static-cdn.jtvnw.net/ttv-boxart/Fortnite-285x380.jpg"
+            ),
+            SearchData(
+                "Game of thrones",
+                platform = 1,
+                categoryStringId = R.string.games_category,
+                platformResId = R.drawable.tune_icon,
+                imageUrl = "https://static-cdn.jtvnw.net/ttv-boxart/Call%20of%20Duty:%20Modern%20Warfare-285x380.jpg"
+            ),
+            SearchData(
+                "Game of thrones",
+                platform = 1,
+                categoryStringId = R.string.games_category,
+                platformResId = R.drawable.tune_icon,
+                imageUrl = "https://static-cdn.jtvnw.net/ttv-boxart/Fortnite-285x380.jpg"
+            ),
             SearchData(
                 "Game of thrones",
                 platform = 1,
@@ -145,7 +214,6 @@ class SearchViewLayout : ConstraintLayout, SearchView.OnQueryTextListener,
         init(context, attrs)
     }
 
-
     fun addFilter(
         name: String,
         filterSelections: Collection<FilterSelection<SearchData>>,
@@ -160,8 +228,17 @@ class SearchViewLayout : ConstraintLayout, SearchView.OnQueryTextListener,
     }
 
     override fun onQueryTextSubmit(query: String?): Boolean {
-        loadDataJob =
-            CoroutineScope(Dispatchers.Default).launch { filterLayout.query(query!!) }
+        if (query.isNullOrEmpty()) {
+            return true
+        } else {
+            quickQueryJob?.cancel()
+            loadDataJob?.cancel()
+            loadDataJob = CoroutineScope(Dispatchers.Default).launch {
+                withContext(Dispatchers.Main) { onQueryStart() }
+                delay(debounceLength)
+                filterLayout.query(query)
+            }
+        }
         return false
     }
 
@@ -169,11 +246,11 @@ class SearchViewLayout : ConstraintLayout, SearchView.OnQueryTextListener,
         onType(newText)
         if (!newText.isNullOrBlank()) {
             if (quickQueryJob != null && quickQueryJob!!.isActive) quickQueryJob?.cancel()
-                quickQueryJob = CoroutineScope(Dispatchers.Default).launch {
-                    delay(debounceLength)
-                    searchManager.queryData(newText, true)
-                }
-
+            quickQueryJob = CoroutineScope(Dispatchers.Default).launch {
+                withContext(Dispatchers.Main) { onQueryStart() }
+                delay(debounceLength)
+                searchManager.queryData(newText, true)
+            }
         }
         return true
     }
@@ -307,7 +384,6 @@ class SearchViewLayout : ConstraintLayout, SearchView.OnQueryTextListener,
                     R.color.colorSurface, null
                 )
             )
-
             setOnClickListener { filterAnimation() }
         }
         dataSourceRecyclerView = RecyclerView(context).apply {
@@ -324,6 +400,7 @@ class SearchViewLayout : ConstraintLayout, SearchView.OnQueryTextListener,
                 LinearLayoutManager(context).also { it.orientation = RecyclerView.HORIZONTAL }
         }
         searchRecyclerView = RecyclerView(context).apply {
+            id = View.generateViewId()
             setBackgroundColor(ResourcesCompat.getColor(resources, R.color.colorLight, null))
             layoutParams = LayoutParams(MATCH_PARENT, MATCH_CONSTRAINT).also {
                 it.bottomToBottom = PARENT_ID
@@ -333,7 +410,22 @@ class SearchViewLayout : ConstraintLayout, SearchView.OnQueryTextListener,
             visibility = View.INVISIBLE
             layoutManager = LinearLayoutManager(context)
             elevation = 10f
+
             adapter = searchListAdapter
+        }
+        searchProgressBar = SpinKitView(context).apply {
+            id = View.generateViewId()
+            val size = convertDpToPixel(150, resources)
+            layoutParams = LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply {
+                topToTop = searchRecyclerView.id
+                bottomToBottom = searchRecyclerView.id
+                startToStart = searchRecyclerView.id
+                endToEnd = searchRecyclerView.id
+            }
+            setColor(ResourcesCompat.getColor(resources, R.color.colorOnSecondaryVariant, null))
+            visibility = View.INVISIBLE
+            elevation = 12f
+            setIndeterminateDrawable(DoubleBounce())
         }
         latestSearchesText = MaterialTextView(getContext()).apply {
             id = View.generateViewId()
@@ -346,13 +438,23 @@ class SearchViewLayout : ConstraintLayout, SearchView.OnQueryTextListener,
             maxLines = 1
             typeface = Typeface.DEFAULT_BOLD
             text = getContext().getString(R.string.latest_searches)
+            setOnClickListener {
+                                            TransitionManager.beginDelayedTransition(this@SearchViewLayout, filterExpandTransition)
+                            latestSearchesList.layoutParams = (latestSearchesList.layoutParams as LayoutParams).also {
+                                it.topToTop = PARENT_ID
+                                it.topToBottom = UNSET
+                            }
+            }
             TextViewCompat.setTextAppearance(
                 this,
                 R.style.TextAppearance_MaterialComponents_Headline5
             )
         }
         latestSearchesList = RecyclerView(context).apply {
+            setBackgroundColor(ResourcesCompat.getColor(resources, R.color.colorSurface, null))
+            id = R.id.latest_search_list
             layoutManager = LinearLayoutManager(context)
+            outlineProvider = null
             layoutParams = LayoutParams(MATCH_CONSTRAINT, MATCH_CONSTRAINT).apply {
                 topToBottom = latestSearchesText.id
                 startToStart = headlineText.id
@@ -380,7 +482,6 @@ class SearchViewLayout : ConstraintLayout, SearchView.OnQueryTextListener,
             RecentListAdapter.RecentData(1, "yassuo", 1589116706 - 36000000, 51),
             RecentListAdapter.RecentData(1, "nadeshot", 1589116706 - 36000000, 12),
             RecentListAdapter.RecentData(1, "drdisresepect", 1589116706 - 36000000, 10)
-
         )
         recentListAdapter = RecentListAdapter(context, list, this)
         recentSearchesList = RecyclerView(context).apply {
@@ -402,6 +503,7 @@ class SearchViewLayout : ConstraintLayout, SearchView.OnQueryTextListener,
             layoutManager = LinearLayoutManager(context)
             adapter = recentListAdapter
         }
+
         addView(settingsButton)
         addView(headlineText)
         addView(searchView)
@@ -411,6 +513,7 @@ class SearchViewLayout : ConstraintLayout, SearchView.OnQueryTextListener,
         addView(latestSearchesText)
         addView(latestSearchesList)
         addView(filterLayout)
+        addView(searchProgressBar)
         searchView.setOnSearchClickListener {
             onSearch()
         }
@@ -422,7 +525,24 @@ class SearchViewLayout : ConstraintLayout, SearchView.OnQueryTextListener,
 
     private fun initDataSource(sourceDownloads: MutableList<DataSource.SourceDownloader<SearchData>>) {
         dataSourceAdapter =
-            DataSourceAdapter(sourceDownloads).also { dataSourceRecyclerView.adapter = it }
+            DataSourceAdapter(sourceDownloads).also { sourceAdapter ->
+                sourceAdapter.onItemClickListener = object : OnItemClickListener {
+                    override fun onClick(position: Int, view: View) {
+                        val colorId = if (view.isSelected) {
+                            R.color.colorSurface
+                        } else {
+                            R.color.colorOnSecondaryVariant
+                        }
+                        val color = ResourcesCompat.getColor(resources, colorId, null)
+                        val colorStateList = ColorStateList.valueOf(color)
+                        val affectedView = view.findViewById<View>(R.id.sourceButton)
+                        ViewCompat.setBackgroundTintList(affectedView, colorStateList)
+                        view.isSelected = !view.isSelected
+                        syncDataSourceData(position, view.isSelected)
+                    }
+                }
+                dataSourceRecyclerView.adapter = sourceAdapter
+            }
     }
 
     private fun onSearch() {
@@ -431,15 +551,20 @@ class SearchViewLayout : ConstraintLayout, SearchView.OnQueryTextListener,
         headlineText.visibility = View.INVISIBLE
         searchView.layoutParams = (searchView.layoutParams as LayoutParams).apply {
             startToStart = PARENT_ID
-            endToEnd = PARENT_ID
+            endToStart = settingsButton.id
             topToTop = PARENT_ID
             topMargin = 0
-            width = MATCH_PARENT
+            width = MATCH_CONSTRAINT
+        }
+        settingsButton.layoutParams = (settingsButton.layoutParams as LayoutParams).also {
+            it.endToEnd = PARENT_ID
         }
         searchView.background = ResourcesCompat.getDrawable(resources, R.color.colorSurface, null)
     }
 
     private fun onClose() {
+        quickQueryJob?.cancel()
+        searchProgressBar.visibility = View.INVISIBLE
         TransitionManager.beginDelayedTransition(this, searchFocusTransition)
         recentSearchesList.visibility = View.GONE
         headlineText.visibility = View.VISIBLE
@@ -457,6 +582,9 @@ class SearchViewLayout : ConstraintLayout, SearchView.OnQueryTextListener,
         }
         searchView.background =
             ResourcesCompat.getDrawable(resources, R.drawable.rounded_search_view, null)
+        settingsButton.layoutParams = (settingsButton.layoutParams as LayoutParams).also {
+            it.endToEnd = headlineText.id
+        }
     }
 
     private fun onType(text: String?) {
@@ -469,7 +597,7 @@ class SearchViewLayout : ConstraintLayout, SearchView.OnQueryTextListener,
         }
     }
 
-    override fun onClick(position: Int) {
+    override fun onClick(position: Int, view: View) {
         searchView.setQuery(recentListAdapter.recentData?.get(position)?.searchText, true)
     }
 
@@ -496,10 +624,38 @@ class SearchViewLayout : ConstraintLayout, SearchView.OnQueryTextListener,
         }
     }
 
+    override fun onQueryStart() {
+        searchProgressBar.visibility = View.VISIBLE
+        searchListAdapter.searchData = null
+    }
+
+    override fun onDataLoad() {
+
+    }
+
+    override fun onDataLoaded() {
+
+    }
+
+    override fun onQueryFilter() {
+
+    }
+
+    override fun onQueryCanceled(message: String) {
+        searchProgressBar.visibility = View.INVISIBLE
+    }
+
+    override fun onQueryCompleted() {
+        searchProgressBar.visibility = View.INVISIBLE
+    }
+
+    fun syncDataSourceData(position: Int, isSelected: Boolean) {
+        dataSourceAdapter?.dataSource?.get(position)?.isEnabled = isSelected
+    }
 }
 
 interface OnItemClickListener {
-    fun onClick(position: Int)
+    fun onClick(position: Int, view: View)
 }
 
 fun convertDpToPixel(dp: Int, resources: Resources): Int {

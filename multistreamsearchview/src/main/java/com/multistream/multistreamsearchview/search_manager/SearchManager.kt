@@ -6,8 +6,11 @@ import androidx.lifecycle.MutableLiveData
 import com.multistream.multistreamsearchview.data_source.DataSource
 import com.multistream.multistreamsearchview.filter.FilterSelection
 import com.multistream.multistreamsearchview.filter.SearchDataFilter
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
-class SearchManager<T> : FilterSelection.OnSelectionListener<T> {
+class SearchManager<T>() : FilterSelection.OnSelectionListener<T> {
 
     var itemsLiveData: MutableLiveData<List<T>>? = MutableLiveData()
 
@@ -17,8 +20,15 @@ class SearchManager<T> : FilterSelection.OnSelectionListener<T> {
 
     var isSourceDownloadEnabled = true
 
+    var onQueryListener: OnQueryListener? = null
+
+    constructor(onQueryListener: OnQueryListener) : this() {
+        this.onQueryListener = onQueryListener
+    }
+
     private suspend fun loadData(data: List<T>? = null) {
-            dataSource.getAllData()
+        withContext(Dispatchers.Main) { onQueryListener?.onDataLoad() }
+        dataSource.getAllData()
     }
 
     fun addFilter(
@@ -42,16 +52,22 @@ class SearchManager<T> : FilterSelection.OnSelectionListener<T> {
     }
 
     fun addSourceDownloader(sourceDownloader: DataSource.SourceDownloader<T>) {
-        dataSource?.addSourceDownloader(sourceDownloader)
+        dataSource.addSourceDownloader(sourceDownloader)
     }
 
     suspend fun queryData(query: String, isQuickSearch: Boolean = false) {
         loadData()
-        if (dataSource.itemsData == null) return
+        val message = "no data was loaded"
+        if (dataSource.itemsData == null) {
+            withContext(Dispatchers.Main) { onQueryListener?.onQueryCanceled(message) }
+            throw CancellationException(message)
+        }
         if (isQuickSearch) {
             itemsLiveData?.postValue(dataSource.itemsData)
+            withContext(Dispatchers.Main) { onQueryListener?.onQueryCompleted() }
             return
         }
+        withContext(Dispatchers.Main) { onQueryListener?.onQueryFilter() }
         var filterData = dataSource.itemsData
         for (filter in filters) {
             val filteredResult: MutableList<T> = mutableListOf()
@@ -64,6 +80,7 @@ class SearchManager<T> : FilterSelection.OnSelectionListener<T> {
             filterData = filteredResult
             if (filterData.isEmpty()) break
         }
+        withContext(Dispatchers.Main) { onQueryListener?.onQueryCompleted() }
         itemsLiveData?.postValue(filterData)
     }
 
@@ -117,6 +134,7 @@ class SearchManager<T> : FilterSelection.OnSelectionListener<T> {
     }
 
 }
+
 fun <T, R> List<T>.findInFilterOrNull(action: (item: T) -> R?): R? {
     var result: R? = null
     for (b in this) {
@@ -124,4 +142,18 @@ fun <T, R> List<T>.findInFilterOrNull(action: (item: T) -> R?): R? {
         if (result != null) break
     }
     return result
+}
+
+interface OnQueryListener {
+    fun onQueryStart()
+
+    fun onDataLoad()
+
+    fun onDataLoaded()
+
+    fun onQueryFilter()
+
+    fun onQueryCanceled(message: String)
+
+    fun onQueryCompleted()
 }

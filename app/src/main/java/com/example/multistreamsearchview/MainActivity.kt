@@ -25,10 +25,7 @@ class MainActivity : AppCompatActivity() {
             .setIconDrawable(R.drawable.twitch_icon)
             .setName("Twitch")
             .build(SearchViewLayout.SearchData::class.java) {
-                getData(TWITCH, GAMES) + getData2(
-                    TWITCH,
-                    GAMES
-                )
+                getData(TWITCH, GAMES)
             }
         val sourceDownloader3 = DataSource.Builder()
             .setIconDrawable(R.drawable.recent_icon)
@@ -58,7 +55,6 @@ class MainActivity : AppCompatActivity() {
             .setFilterSelectionName("Mixer")
             .build(SearchViewLayout.SearchData::class.java) { list -> list.filter { it.platform == MIXER } }
         val listOfSelectionData = listOf(platform, platform2)
-        binding.searchLayout.addFilter("Choose platform", listOfSelectionData, true, true)
         val category = FilterSelection.Builder()
             .setFilterSelectionName("Games")
             .build(SearchViewLayout.SearchData::class.java) { list -> list.filter { it.category == GAMES } }
@@ -94,8 +90,8 @@ class MainActivity : AppCompatActivity() {
                 "https://static-cdn.jtvnw.net/previews-ttv/live_user_thekairi78-440x248.jpg",
                 STREAMS,
                 R.string.streams_category,
-                MIXER,
-                R.drawable.mixer_icon
+                TWITCH,
+                R.drawable.twitch_icon
             ),
             SearchViewLayout.SearchData(
                 "Call of Duty: Modern Warfare",
@@ -139,8 +135,8 @@ class MainActivity : AppCompatActivity() {
                 "https://static-cdn.jtvnw.net/jtv_user_pictures/cdnthe3rd-profile_image-8246eb11f7f4b215-70x70.jpeg",
                 CHANNELS,
                 R.string.channels_category,
-                TWITCH,
-                R.drawable.twitch_icon
+                MIXER,
+                R.drawable.mixer_icon
             ),
             SearchViewLayout.SearchData(
                 "Shr",
