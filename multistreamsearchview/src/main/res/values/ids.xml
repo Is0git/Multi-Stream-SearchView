@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="progress_bar" type="id" />
+    <item name="motionLayout" type="id" />
+    <item name="data_source_list" type="id" />
+    <item name="latest_search_text" type="id" />
+    <item name="search_list" type="id" />
+    <item name="clear_data_button" type="id" />
+    <item name="bar_layout" type="id" />
+    <item name="headline" type="id" />
+    <item name="search_view" type="id" />
+    <item name="app_bar_layout" type="id" />
+    <item name="coordinatorLayout" type="id" />
+    <item name="search_no_item" type="id" />
+    <item name="history_list" type="id" />
+    <item name="searchedList" type="id" />
+</resources>

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="clear_all">CLEAR ALL</string>
+    <string name="clear_data_confirmation">Do you want to clear latest searched data?</string>
+    <string name="all">All</string>
+    <string name="i_am_empty">I AM EMPTY :(</string>
+    <string name="no_items_peeposad">no items PeepoSad</string>
+</resources>

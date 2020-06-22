@@ -9,5 +9,8 @@
         <attr name="ChipAction" format="reference"/>
     </declare-styleable>
 
-    <style name="ChipAction" parent="Widget.MaterialComponents.Chip.Action"/>
+    <declare-styleable name="NoItem">
+        <attr name="title" format="string"/>
+    </declare-styleable>
+
 </resources>

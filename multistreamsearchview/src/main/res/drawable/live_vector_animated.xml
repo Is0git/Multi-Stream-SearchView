@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<animated-vector android:drawable="@drawable/ic_live_icon"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+    <target
+        android:animation="@animator/left_large_line"
+        android:name="left_line_group"/>
+    <target
+        android:animation="@animator/left_small_line"
+        android:name="left_small_line_group"/>
+    <target
+        android:animation="@animator/right_large_line"
+        android:name="right_line_group"/>
+    <target
+        android:animation="@animator/right_small_line"
+        android:name="right_small_line_group"/>
+</animated-vector>

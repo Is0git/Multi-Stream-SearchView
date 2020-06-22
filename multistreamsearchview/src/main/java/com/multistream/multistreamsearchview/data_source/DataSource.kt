@@ -2,7 +2,6 @@ package com.multistream.multistreamsearchview.data_source
 
 import android.view.View
 import com.multistream.multistreamsearchview.R
-import com.multistream.multistreamsearchview.search_view.SearchViewLayout
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -10,16 +9,14 @@ import kotlinx.coroutines.coroutineScope
 class DataSource<T> {
 
     var itemsData: List<T>? = null
-
     val sourceDownloads: MutableList<SourceDownloader<*>> by lazy { mutableListOf<SourceDownloader<*>>() }
 
     inline fun<reified T> addDefault(clazz: Class<out T>) {
         val allSourceDownloader = Builder()
-            .setIconDrawable(R.drawable.recent_icon)
+            .setIconDrawable(R.drawable.ic_check_all_icon)
             .setName("All")
             .isAllSource(true)
             .build(clazz)
-
         sourceDownloads.add(allSourceDownloader)
     }
 
@@ -51,24 +48,18 @@ class DataSource<T> {
     interface SourceDownloader<T> {
 
         var isEnabled: Boolean
-
         var iconDrawable: Int
-
         var name: String
-
         var id: Int
 
-        suspend fun getData(): List<T>
+        suspend fun getData(): List<T>?
     }
 
     class Builder {
 
         private var isEnabled: Boolean = false
-
         private var iconDrawable: Int = 0
-
         private var name: String? = null
-
         private var isAll = false
 
         fun setName(name: String): Builder {
@@ -88,21 +79,19 @@ class DataSource<T> {
 
         fun isAllSource(isAllEnabled: Boolean) : Builder {
             this.isAll = isAllEnabled
+            isEnabled = true
             return this
         }
 
-        fun <T> build(clazz: Class<T>, getData: (() -> List<T>)? = null): SourceDownloader<T> {
+        fun <T> build(clazz: Class<T>, getData: (suspend () -> List<T>?)? = null): SourceDownloader<T> {
             return object : SourceDownloader<T> {
 
                 override var id: Int = if (isAll) R.id.all_data_source else View.generateViewId()
-
                 override var isEnabled: Boolean = this@Builder.isEnabled
-
                 override var iconDrawable: Int = this@Builder.iconDrawable
-
                 override var name: String = this@Builder.name ?: "no name"
 
-                override suspend fun getData(): List<T> {
+                override suspend fun getData(): List<T>? {
                     return if (getData == null) emptyList() else getData()
                 }
             }

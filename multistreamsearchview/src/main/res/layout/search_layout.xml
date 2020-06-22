@@ -5,6 +5,7 @@
 
     <com.multistream.multistreamsearchview.search_view.SearchViewLayout
         android:id="@+id/search_layout"
+        android:background="@color/colorSurface"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
@@ -12,15 +13,43 @@
             android:id="@+id/search_list"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-            android:orientation="vertical"
-            android:elevation="10dp"
-            android:layout_marginTop="50dp"
-            android:visibility="invisible"
+            android:layout_marginTop="52dp"
             android:background="@color/colorLight"
+            android:elevation="10dp"
+            android:orientation="vertical"
+            android:visibility="invisible"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
+
+        <include
+            android:id="@+id/search_no_item"
+            layout="@layout/no_item"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:visibility="invisible"
+            app:layout_constraintBottom_toBottomOf="@id/search_list"
+            app:layout_constraintEnd_toEndOf="@id/search_list"
+            app:layout_constraintStart_toStartOf="@id/search_list"
+            app:layout_constraintTop_toTopOf="@id/search_list" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/history_list"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_marginTop="52dp"
+            android:background="@color/colorSurface"
+            android:elevation="10dp"
+            android:orientation="vertical"
+            android:overScrollMode="always"
+            android:visibility="invisible"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:listitem="@layout/latest_searched_item" />
 
         <com.github.ybq.android.spinkit.SpinKitView
             android:id="@+id/progress_bar"
@@ -30,10 +59,10 @@
             android:elevation="11dp"
             android:visibility="invisible"
             app:SpinKit_Color="@color/colorOnSecondaryVariant"
-            app:layout_constraintStart_toStartOf="@id/search_list"
+            app:layout_constraintBottom_toBottomOf="@id/search_list"
             app:layout_constraintEnd_toEndOf="@id/search_list"
-            app:layout_constraintTop_toTopOf="@id/search_list"
-            app:layout_constraintBottom_toBottomOf="@id/search_list"/>
+            app:layout_constraintStart_toStartOf="@id/search_list"
+            app:layout_constraintTop_toTopOf="@id/search_list" />
 
         <androidx.coordinatorlayout.widget.CoordinatorLayout
             android:id="@+id/coordinatorLayout"
@@ -43,37 +72,70 @@
             <com.google.android.material.appbar.AppBarLayout
                 android:id="@+id/app_bar_layout"
                 android:layout_width="match_parent"
-                app:liftOnScroll="true"
-                android:background="@drawable/bg_gradient"
-                android:layout_height="wrap_content">
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_gradient">
 
                 <include layout="@layout/header_layout" />
 
-                <com.google.android.material.textview.MaterialTextView
-                    style="@style/TextAppearance.MaterialComponents.Headline6"
-                    android:id="@+id/latest_search_text"
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:id="@+id/bar_layout"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="30dp"
-                    android:layout_marginEnd="30dp"
-                    android:paddingTop="10dp"
-                    android:paddingBottom="10dp"
-                    android:lines="1"
-                    android:text="@string/latest_searches" />
-            </com.google.android.material.appbar.AppBarLayout>
+                    app:layout_scrollFlags="scroll|enterAlways|exitUntilCollapsed">
 
+                    <com.google.android.material.textview.MaterialTextView
+                        android:id="@+id/latest_search_text"
+                        style="@style/TextAppearance.MaterialComponents.Headline6"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="48dp"
+                        android:layout_marginTop="20dp"
+                        android:layout_marginEnd="30dp"
+                        android:gravity="start"
+                        android:lines="2"
+                        android:text="@string/latest_searches"
+                        android:textAlignment="textStart"
+                        app:layout_constraintEnd_toStartOf="@id/clear_data_button"
+                        app:layout_constraintHorizontal_bias="0.0"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/clear_data_button"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="100dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="30dp"
+                        android:minLines="2"
+                        android:breakStrategy="high_quality"
+                        android:text="@string/clear_all"
+                        app:cornerRadius="10dp"
+                        app:layout_constraintBottom_toBottomOf="@id/latest_search_text"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toEndOf="@id/latest_search_text"
+                        app:layout_constraintTop_toTopOf="@id/latest_search_text" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+            </com.google.android.material.appbar.AppBarLayout>
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/searchedList"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
                 android:orientation="vertical"
-                android:layout_marginStart="30dp"
                 android:overScrollMode="always"
-                android:layout_marginEnd="30dp"
                 app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
                 app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior"
                 tools:listitem="@layout/latest_searched_item" />
+
+            <include
+                android:id="@+id/no_item"
+                layout="@layout/no_item"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="center"
+                android:layout_marginTop="100dp"
+                android:visibility="invisible"
+                app:layout_behavior="com.google.android.material.appbar.AppBarLayout$ScrollingViewBehavior" />
         </androidx.coordinatorlayout.widget.CoordinatorLayout>
     </com.multistream.multistreamsearchview.search_view.SearchViewLayout>
 </layout>

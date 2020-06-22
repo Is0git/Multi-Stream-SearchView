@@ -6,7 +6,6 @@ import androidx.lifecycle.MutableLiveData
 import com.multistream.multistreamsearchview.data_source.DataSource
 import com.multistream.multistreamsearchview.filter.FilterSelection
 import com.multistream.multistreamsearchview.filter.SearchDataFilter
-import com.multistream.multistreamsearchview.search_view.SearchViewLayout
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -14,14 +13,11 @@ import kotlinx.coroutines.withContext
 class SearchManager<T>() : FilterSelection.OnSelectionListener<T> {
 
     var itemsLiveData: MutableLiveData<List<T>>? = MutableLiveData()
-
     val filters: MutableList<SearchDataFilter<T>> by lazy { mutableListOf<SearchDataFilter<T>>() }
-
     var dataSource: DataSource<T> = DataSource()
-
     var isSourceDownloadEnabled = true
-
     var onQueryListener: OnQueryListener? = null
+    var isShuffled = true
 
     constructor(onQueryListener: OnQueryListener) : this() {
         this.onQueryListener = onQueryListener
@@ -32,21 +28,21 @@ class SearchManager<T>() : FilterSelection.OnSelectionListener<T> {
         dataSource.getAllData()
     }
 
-
     fun addFilter(
         name: String,
         filterSelections: Collection<FilterSelection<T>>,
         isSingleSelection: Boolean,
-        isAllSelectionEnabled: Boolean
+        isAllSelectionEnabled: Boolean,
+        allName: String? = null
     ) {
         val filter = SearchDataFilter<T>(
             name
         ).apply {
             if (isAllSelectionEnabled) {
                 this.isMultipleSelectionEnabled = true
-                addAllFilterSelection(this)
-                this.isSingleSelection = isSingleSelection
+                addAllFilterSelection(this, allName)
             }
+            this.isSingleSelection = isSingleSelection
             id = View.generateViewId()
             addFilterSelections(filterSelections)
         }
@@ -64,20 +60,33 @@ class SearchManager<T>() : FilterSelection.OnSelectionListener<T> {
             withContext(Dispatchers.Main) { onQueryListener?.onQueryCanceled(message) }
             throw CancellationException(message)
         }
+        if (isShuffled) dataSource.itemsData = dataSource.itemsData!!.shuffled()
         if (isQuickSearch) {
             itemsLiveData?.postValue(dataSource.itemsData)
-            withContext(Dispatchers.Main) { onQueryListener?.onQueryCompleted() }
+            withContext(Dispatchers.Main) {
+                onQueryListener?.onQueryCompleted(
+                    query,
+                    isQuickSearch,
+                    dataSource.itemsData!!.count()
+                )
+            }
             return
         }
         withContext(Dispatchers.Main) { onQueryListener?.onQueryFilter() }
-        val result  = filter(dataSource.itemsData!!)
+        val result = filter(dataSource.itemsData!!)
 
-        withContext(Dispatchers.Main) { onQueryListener?.onQueryCompleted() }
+        withContext(Dispatchers.Main) {
+            onQueryListener?.onQueryCompleted(
+                query,
+                isQuickSearch,
+                dataSource.itemsData!!.count()
+            )
+        }
         itemsLiveData?.postValue(result)
     }
 
-   suspend fun filter(data: List<T>) : List<T> {
-       onQueryListener?.onQueryFilter()
+    suspend fun filter(data: List<T>): List<T> {
+        onQueryListener?.onQueryFilter()
         var filterData = data
         for (filter in filters) {
             val filteredResult: MutableList<T> = mutableListOf()
@@ -106,7 +115,7 @@ class SearchManager<T>() : FilterSelection.OnSelectionListener<T> {
     }
 
     fun findSelectionFilterById(@IdRes id: Int): FilterSelection<T>? {
-        var result = filters.findInFilterOrNull { item: SearchDataFilter<T> ->
+        return filters.findInFilterOrNull { item: SearchDataFilter<T> ->
             var selection: FilterSelection<T>? = null
             for (filterSelection in item.filterSelections) {
                 if (filterSelection.id == id) {
@@ -116,12 +125,14 @@ class SearchManager<T>() : FilterSelection.OnSelectionListener<T> {
             }
             selection
         }
-        return result
     }
 
-    private fun addAllFilterSelection(filter: SearchDataFilter<T>) {
+    private fun addAllFilterSelection(
+        filter: SearchDataFilter<T>,
+        allName: String?
+    ) {
         val filterSelection = FilterSelection<T>(
-            "All"
+            allName ?: "All"
         ).apply {
             id = View.generateViewId()
             isAllFilter = true
@@ -155,14 +166,9 @@ fun <T, R> List<T>.findInFilterOrNull(action: (item: T) -> R?): R? {
 
 interface OnQueryListener {
     fun onQueryStart()
-
     fun onDataLoad()
-
     fun onDataLoaded()
-
     fun onQueryFilter()
-
     fun onQueryCanceled(message: String)
-
-    fun onQueryCompleted()
+    fun onQueryCompleted(query: String?, isQuickSearch: Boolean, count: Int)
 }

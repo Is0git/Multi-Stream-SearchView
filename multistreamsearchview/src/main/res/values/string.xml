@@ -1,29 +1,52 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="default_filter_name">Choose category</string>
+
     <string name="search">SEARCH</string>
+
     <string name="category_filter_title">Search</string>
+
     <string name="default_chip_name">All</string>
+
     <string name="streams_category">Streams</string>
+
     <string name="games_category">Games</string>
+
     <string name="channels_category">Channels</string>
+
     <string name="filters">Filters</string>
-    <item name="default_chip" type="id"/>
-    <item name="settings_button" type="id"/>
+
+    <item name="default_chip" type="id" />
+
+    <item name="settings_button" type="id" />
 
     <string name="just_now">just now</string>
+
     <string name="minute_ago">minute ago</string>
+
     <string name="minutes_ago">minutes ago</string>
+
     <string name="hour_ago">an hour ago</string>
+
     <string name="hours_ago">hours ago</string>
+
     <string name="yesterday">yesterday</string>
+
     <string name="less_week_ago">less than week ago</string>
+
     <string name="more_week_ago">more than week ago</string>
+
     <string name="long_time_ago">long time ago</string>
+
     <string name="default_time">null</string>
+
     <string name="latest_searches">LATEST SEARCHES</string>
+
     <string name="results">%d results</string>
-    <item type="id" name="latest_search_list"/>
-    <item type="id" name="recent_searches_list"/>
-    <item type="id" name="all_data_source"/>
+
+    <item name="latest_search_list" type="id" />
+
+    <item name="recent_searches_list" type="id" />
+
+    <item name="all_data_source" type="id" />
 </resources>

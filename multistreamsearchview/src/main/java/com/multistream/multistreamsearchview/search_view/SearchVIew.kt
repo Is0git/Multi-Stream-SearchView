@@ -3,10 +3,12 @@ package com.multistream.multistreamsearchview.search_view
 import android.content.Context
 import android.content.res.ColorStateList
 import android.content.res.Resources
+import android.transition.Transition
 import android.transition.TransitionInflater
 import android.transition.TransitionManager
 import android.util.AttributeSet
 import android.util.DisplayMetrics
+import android.util.Log
 import android.view.KeyEvent
 import android.view.View
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
@@ -14,193 +16,84 @@ import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.widget.SearchView
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.motion.widget.MotionLayout
-import androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.*
+import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.PARENT_ID
+import androidx.constraintlayout.widget.ConstraintLayout.LayoutParams.UNSET
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.ViewCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleObserver
 import androidx.lifecycle.Observer
-import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.lifecycle.OnLifecycleEvent
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
 import com.github.ybq.android.spinkit.SpinKitView
 import com.google.android.material.appbar.AppBarLayout
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textview.MaterialTextView
-import com.multistream.multistreamsearchview.filter.FilterSelection
 import com.multistream.multistreamsearchview.R
 import com.multistream.multistreamsearchview.data_source.DataSource
 import com.multistream.multistreamsearchview.data_source.DataSourceAdapter
-import com.multistream.multistreamsearchview.data_sync.MultipleSelectionDataSync
 import com.multistream.multistreamsearchview.filter.FilterLayout
-import com.multistream.multistreamsearchview.recent_search.RecentListAdapter
+import com.multistream.multistreamsearchview.filter.FilterSelection
+import com.multistream.multistreamsearchview.recent_search.HistoryListAdapter
 import com.multistream.multistreamsearchview.search_manager.OnQueryListener
 import com.multistream.multistreamsearchview.search_manager.SearchManager
 import com.multistream.multistreamsearchview.search_result.SearchListAdapter
 import kotlinx.coroutines.*
-import javax.xml.transform.Source
+import kotlin.math.min
 
 
 class SearchViewLayout : MotionLayout, SearchView.OnQueryTextListener,
-    OnItemClickListener, OnQueryListener {
-
+    OnItemClickListener, OnQueryListener, LifecycleObserver {
     companion object {
-        val GAMES = 0
-        val CHANNELS = 1
-        val STREAMS = 2
+        const val GAMES = 0
+        const val CHANNELS = 1
+        const val STREAMS = 2
     }
 
-    lateinit var headlineText: MaterialTextView
-
+    private lateinit var headlineText: MaterialTextView
     lateinit var searchView: SearchView
-
-    lateinit var recentSearchesList: RecyclerView
-
-    lateinit var recentListAdapter: RecentListAdapter
-
-    lateinit var settingsButton: MaterialButton
-
-    lateinit var dataSourceRecyclerView: RecyclerView
-
-    lateinit var latestSearchesList: RecyclerView
-
-    lateinit var latestSearchesText: MaterialTextView
-
-    lateinit var searchProgressBar: SpinKitView
-
-    lateinit var appBarLayout: AppBarLayout
-
-    lateinit var motionLayout: com.multistream.multistreamsearchview.app_bar.AppBarLayout
-
-    private var debounceLength = 1500L
-
-    var searchManager = SearchManager<SearchData>(this)
-
-    var headlineTextString: String = resources.getString(R.string.search)
-
+    private lateinit var searchesHistoryList: RecyclerView
+    var historyListAdapter: HistoryListAdapter = HistoryListAdapter(context, this)
+    private lateinit var settingsButton: MaterialButton
+    private lateinit var dataSourceRecyclerView: RecyclerView
+    private lateinit var latestSearchesList: RecyclerView
+    private lateinit var latestSearchesText: MaterialTextView
+    private lateinit var searchProgressBar: SpinKitView
+    private lateinit var appBarLayout: AppBarLayout
+    private lateinit var motionLayout: com.multistream.multistreamsearchview.app_bar.AppBarLayout
+    var debounceLength = 500L
+    private var searchManager = SearchManager<SearchData>(this)
+    private var headlineTextString: String = resources.getString(R.string.search)
     var initializeDefaultFilters: Boolean = false
-
     private var searchListAdapter = SearchListAdapter()
-
-    var latestSearchesAdapter = LatestSearchedAdapter(
-        listOf(
-            SearchData(
-                "Game of thrones",
-                platform = 1,
-                categoryStringId = R.string.games_category,
-                platformResId = R.drawable.tune_icon,
-                imageUrl = "https://static-cdn.jtvnw.net/ttv-boxart/Call%20of%20Duty:%20Modern%20Warfare-285x380.jpg"
-            ),
-            SearchData(
-                "Game of thrones",
-                platform = 1,
-                categoryStringId = R.string.games_category,
-                platformResId = R.drawable.tune_icon,
-                imageUrl = "https://static-cdn.jtvnw.net/ttv-boxart/Fortnite-285x380.jpg"
-            ),
-            SearchData(
-                "Game of thrones",
-                platform = 1,
-                categoryStringId = R.string.games_category,
-                platformResId = R.drawable.tune_icon,
-                imageUrl = "https://static-cdn.jtvnw.net/ttv-boxart/Call%20of%20Duty:%20Modern%20Warfare-285x380.jpg"
-            ),
-            SearchData(
-                "Game of thrones",
-                platform = 1,
-                categoryStringId = R.string.games_category,
-                platformResId = R.drawable.tune_icon,
-                imageUrl = "https://static-cdn.jtvnw.net/ttv-boxart/Fortnite-285x380.jpg"
-            ),
-            SearchData(
-                "Game of thrones",
-                platform = 1,
-                categoryStringId = R.string.games_category,
-                platformResId = R.drawable.tune_icon,
-                imageUrl = "https://static-cdn.jtvnw.net/ttv-boxart/Call%20of%20Duty:%20Modern%20Warfare-285x380.jpg"
-            ),
-            SearchData(
-                "Game of thrones",
-                platform = 1,
-                categoryStringId = R.string.games_category,
-                platformResId = R.drawable.tune_icon,
-                imageUrl = "https://static-cdn.jtvnw.net/ttv-boxart/Fortnite-285x380.jpg"
-            ),
-            SearchData(
-                "Game of thrones",
-                platform = 1,
-                categoryStringId = R.string.games_category,
-                platformResId = R.drawable.tune_icon,
-                imageUrl = "https://static-cdn.jtvnw.net/ttv-boxart/Call%20of%20Duty:%20Modern%20Warfare-285x380.jpg"
-            ),
-            SearchData(
-                "Game of thrones",
-                platform = 1,
-                categoryStringId = R.string.games_category,
-                platformResId = R.drawable.tune_icon,
-                imageUrl = "https://static-cdn.jtvnw.net/ttv-boxart/Fortnite-285x380.jpg"
-            ),
-            SearchData(
-                "Game of thrones",
-                platform = 1,
-                categoryStringId = R.string.games_category,
-                platformResId = R.drawable.tune_icon,
-                imageUrl = "https://static-cdn.jtvnw.net/ttv-boxart/Call%20of%20Duty:%20Modern%20Warfare-285x380.jpg"
-            ),
-            SearchData(
-                "Game of thrones",
-                platform = 1,
-                categoryStringId = R.string.games_category,
-                platformResId = R.drawable.tune_icon,
-                imageUrl = "https://static-cdn.jtvnw.net/ttv-boxart/Fortnite-285x380.jpg"
-            ),
-            SearchData(
-                "Game of thrones",
-                platform = 1,
-                categoryStringId = R.string.games_category,
-                platformResId = R.drawable.tune_icon,
-                imageUrl = "https://static-cdn.jtvnw.net/ttv-boxart/Call%20of%20Duty:%20Modern%20Warfare-285x380.jpg"
-            ),
-            SearchData(
-                "Game of thrones",
-                platform = 1,
-                categoryStringId = R.string.games_category,
-                platformResId = R.drawable.tune_icon,
-                imageUrl = "https://static-cdn.jtvnw.net/ttv-boxart/Fortnite-285x380.jpg"
-            )
-        )
-    )
-
-    var loadDataJob: Job? = null
-
-    var quickQueryJob: Job? = null
-
-    val multipleSelectionDataSync: MultipleSelectionDataSync<SearchData> by lazy { MultipleSelectionDataSync<SearchData>() }
-
-    lateinit var searchRecyclerView: RecyclerView
-
-    private var searchFocusTransition = TransitionInflater.from(context).inflateTransition(
-        R.transition.on_search_focus_transition
-    )
-
-    private var filterExpandTransition = TransitionInflater.from(context).inflateTransition(
-        R.transition.filters_expand
-    )
-
-    lateinit var filterLayout: FilterLayout
-
+    private var latestSearchesAdapter = LatestSearchedAdapter()
+    private var loadDataJob: Job? = null
+    private var quickQueryJob: Job? = null
+    private var isSearchClosed = true
+    private lateinit var searchRecyclerView: RecyclerView
+    private lateinit var searchFocusTransition: Transition
+    private var filterExpandTransition =
+        TransitionInflater.from(context).inflateTransition(R.transition.filters_expand)
+    lateinit var clearButton: MaterialButton
+    private lateinit var filterLayout: FilterLayout
     var isFilterLayoutHidden = true
-
     var hiddenFilterLayoutHeight = 1
-
     var isDataSourceVisible = true
-
-    var dataSourceAdapter: DataSourceAdapter? = null
-
-    var selectedButtonColor = R.color.colorAccent
-
+    private var dataSourceAdapter: DataSourceAdapter? = null
+    var selectedButtonColor = R.color.colorOnSurface
     var defaultButtonColor = R.color.colorSurface
+    var onAddHistoryData: ((query: String, count: Int) -> Unit)? = null
+    var clearLatestDataDialog: AlertDialog? = null
+    var onSwipe: ((position: Int) -> Unit)? = null
+    private lateinit var searchNoItem: View
 
     constructor(context: Context?) : super(context) {
         init(context)
@@ -218,13 +111,46 @@ class SearchViewLayout : MotionLayout, SearchView.OnQueryTextListener,
         init(context, attrs)
     }
 
+    init {
+        latestSearchesAdapter.onItemClickListener = object : OnItemClickListener {
+            override fun onClick(position: Int, view: View) {
+                val name = latestSearchesAdapter.currentList[position].name
+                searchView.setQuery(name, false)
+                postDelayed({
+                    TransitionManager.beginDelayedTransition(
+                        this@SearchViewLayout,
+                        searchFocusTransition
+                    )
+                    onSearchAnimation()
+                }, 2000)
+            }
+        }
+        isFocusableInTouchMode = true
+        isFocusable = true
+        setOnKeyListener { v, keyCode, event ->
+            if (event.action == KeyEvent.ACTION_UP && keyCode == KeyEvent.KEYCODE_BACK && !isFilterLayoutHidden) {
+                TransitionManager.beginDelayedTransition(this, filterExpandTransition)
+                hideFilterLayout()
+                return@setOnKeyListener true
+            }
+            false
+        }
+    }
+
     fun addFilter(
         name: String,
         filterSelections: Collection<FilterSelection<SearchData>>,
         isSingleSelection: Boolean = false,
-        isAllSelectionEnabled: Boolean = true
+        isAllSelectionEnabled: Boolean = true,
+        allName: String?
     ) {
-        filterLayout.addFilter(name, filterSelections, isSingleSelection, isAllSelectionEnabled)
+        filterLayout.addFilter(
+            name,
+            filterSelections,
+            isSingleSelection,
+            isAllSelectionEnabled,
+            allName
+        )
     }
 
     fun addSourceDownloader(sourceDownloader: DataSource.SourceDownloader<SearchData>) {
@@ -237,8 +163,11 @@ class SearchViewLayout : MotionLayout, SearchView.OnQueryTextListener,
         } else {
             quickQueryJob?.cancel()
             loadDataJob?.cancel()
+            onQueryCanceled("debounce")
             loadDataJob = CoroutineScope(Dispatchers.Default).launch {
-                withContext(Dispatchers.Main) { onQueryStart() }
+                withContext(Dispatchers.Main) {
+                    onQueryStart()
+                }
                 delay(debounceLength)
                 filterLayout.query(query)
             }
@@ -247,19 +176,27 @@ class SearchViewLayout : MotionLayout, SearchView.OnQueryTextListener,
     }
 
     override fun onQueryTextChange(newText: String?): Boolean {
-        onType(newText)
-        if (!newText.isNullOrBlank()) {
-            if (quickQueryJob != null && quickQueryJob!!.isActive) quickQueryJob?.cancel()
-            quickQueryJob = CoroutineScope(Dispatchers.Default).launch {
-                withContext(Dispatchers.Main) { onQueryStart() }
-                delay(debounceLength)
-                searchManager.queryData(newText, false)
+
+        if (searchView.width > 0) {
+            onType(newText)
+            hideFilterLayout()
+            if (!newText.isNullOrBlank()) {
+                loadDataJob?.cancel()
+                quickQueryJob?.cancel()
+                quickQueryJob = CoroutineScope(Dispatchers.Default).launch {
+                    withContext(Dispatchers.Main) { onQueryStart() }
+                    delay(debounceLength)
+                    searchManager.queryData(newText, false)
+                }
             }
+            return true
         }
-        return true
+        return false
     }
 
-    data class SearchData(
+
+    open class SearchData(
+        var id: Int? = null,
         var title: String? = null,
         var imageUrl: String? = null,
         var category: Int? = null,
@@ -271,6 +208,7 @@ class SearchViewLayout : MotionLayout, SearchView.OnQueryTextListener,
     private fun init(context: Context?, attrs: AttributeSet? = null) {
         searchManager.dataSource.addDefault(SearchData::class.java)
         filterLayout = FilterLayout(searchManager, context).apply {
+            setPadding(0, 0, 0, 100)
             this.setBackgroundColor(
                 ResourcesCompat.getColor(
                     resources,
@@ -301,73 +239,60 @@ class SearchViewLayout : MotionLayout, SearchView.OnQueryTextListener,
             )!!
             typedArray.recycle()
         }
-        val list = listOf(
-            RecentListAdapter.RecentData(1, "greekgodx", 1589147066, 5),
-            RecentListAdapter.RecentData(1, "yassuo", 1589147066, 51),
-            RecentListAdapter.RecentData(1, "nadeshot", 1589116706, 12),
-            RecentListAdapter.RecentData(1, "drdisresepect", 1589116706, 10),
-            RecentListAdapter.RecentData(1, "greekgodx", 1589116706, 5),
-            RecentListAdapter.RecentData(1, "yassuo", 1589116706 - 90000, 51),
-            RecentListAdapter.RecentData(1, "nadeshot", 1589116706 - 90000, 12),
-            RecentListAdapter.RecentData(1, "drdisresepect", 1589116706 - 90000, 10),
-            RecentListAdapter.RecentData(1, "greekgodx", 1589116706 - 90000, 5),
-            RecentListAdapter.RecentData(1, "yassuo", 1589116706 - 90000, 51),
-            RecentListAdapter.RecentData(1, "nadeshot", 1589116706 - 90000, 12),
-            RecentListAdapter.RecentData(1, "drdisresepect", 1589116706 - 90000, 10),
-            RecentListAdapter.RecentData(1, "greekgodx", 145, 5),
-            RecentListAdapter.RecentData(1, "yassuo", 1589116706 - 36000000, 51),
-            RecentListAdapter.RecentData(1, "nadeshot", 1589116706 - 36000000, 12),
-            RecentListAdapter.RecentData(1, "drdisresepect", 1589116706 - 36000000, 10)
-        )
-        recentListAdapter = RecentListAdapter(context, list, this)
-        recentSearchesList = RecyclerView(context!!).apply {
-            id = R.id.recent_searches_list
-            setBackgroundColor(
-                ResourcesCompat.getColor(
-                    resources,
-                    R.color.colorSurface, null
-                )
-            )
-            visibility = View.GONE
-            elevation = 10f
-            layoutManager = LinearLayoutManager(context)
-            adapter = recentListAdapter
-        }
-        addView(recentSearchesList)
         addView(filterLayout)
     }
 
     override fun onFinishInflate() {
         super.onFinishInflate()
         val coordinatorLayout = findViewById<CoordinatorLayout>(R.id.coordinatorLayout)
-        appBarLayout = coordinatorLayout.findViewById<AppBarLayout>(R.id.app_bar_layout)
+        appBarLayout = coordinatorLayout.findViewById(R.id.app_bar_layout)
         searchView = appBarLayout.findViewById<SearchView>(R.id.search_view).apply {
+            isActivated = true
+            isEnabled = true
+            this.requestFocus()
             this.setOnQueryTextListener(this@SearchViewLayout)
             setOnSearchClickListener {
                 onSearch()
             }
             setOnCloseListener {
                 onClose()
+                searchView.clearFocus()
+                searchView.isEnabled = false
+                searchView.isActivated = false
                 false
             }
         }
+        searchNoItem = findViewById(R.id.search_no_item)
+        searchesHistoryList = findViewById<RecyclerView>(R.id.history_list).apply {
+            this.adapter = historyListAdapter
+        }
         settingsButton = findViewById<MaterialButton>(R.id.settings_button).apply {
-            this.setOnClickListener { filterAnimation() }
+            elevation = 0f
+            this.setOnClickListener {
+                it.isSelected = !it.isSelected
+                filterAnimation()
+            }
         }
         latestSearchesList = findViewById<RecyclerView>(R.id.searchedList).apply {
             adapter = latestSearchesAdapter
-        }
+            ItemTouchHelper(object :
+                ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT) {
+                override fun onMove(
+                    recyclerView: RecyclerView,
+                    viewHolder: RecyclerView.ViewHolder,
+                    target: RecyclerView.ViewHolder
+                ): Boolean = true
 
+                override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {
+                    onSwipe?.invoke(viewHolder.adapterPosition)
+                }
+            }).attachToRecyclerView(this)
+        }
         dataSourceRecyclerView = findViewById<RecyclerView>(R.id.data_source_list).apply {
         }
         headlineText = appBarLayout.findViewById(R.id.headline)
-        recentSearchesList.layoutParams = LayoutParams(MATCH_CONSTRAINT, MATCH_CONSTRAINT).apply {
-            startToStart = PARENT_ID
-            endToEnd = PARENT_ID
-            bottomToBottom = PARENT_ID
-            topMargin = convertDpToPixel(50, resources)
-            topToTop = PARENT_ID
-        }
+        val barLayout = appBarLayout.findViewById<ConstraintLayout>(R.id.bar_layout)
+        clearButton = barLayout.findViewById<MaterialButton>(R.id.clear_data_button)
         searchRecyclerView = findViewById<RecyclerView>(R.id.search_list).apply {
             adapter = searchListAdapter
         }
@@ -375,6 +300,7 @@ class SearchViewLayout : MotionLayout, SearchView.OnQueryTextListener,
         motionLayout = appBarLayout.findViewById(R.id.motionLayout)
         dataSourceRecyclerView = motionLayout.findViewById(R.id.data_source_list)
         motionLayout.materialTextView = appBarLayout.findViewById(R.id.latest_search_text)
+        searchFocusTransition = android.transition.AutoTransition().setDuration(resources.getInteger(android.R.integer.config_shortAnimTime).toLong()).removeTarget(dataSourceRecyclerView).excludeChildren(dataSourceRecyclerView, true)
     }
 
     private fun initDataSource(sourceDownloads: MutableList<DataSource.SourceDownloader<SearchData>>) {
@@ -413,6 +339,16 @@ class SearchViewLayout : MotionLayout, SearchView.OnQueryTextListener,
         }
     }
 
+    fun setOnSearchListItemClickListener(onClick: (position: Int, view: View) -> Unit) {
+        searchListAdapter.onItemClickListener = object : OnItemClickListener {
+            override fun onClick(position: Int, view: View) {
+                searchView.onActionViewCollapsed()
+                onCloseAnimation()
+                onClick(position, view)
+            }
+        }
+    }
+
     private fun handleButtonSelection(view: View, position: Int, isSelected: Boolean) {
         view.isSelected = isSelected
         changeButtonState(view, isSelected)
@@ -433,70 +369,88 @@ class SearchViewLayout : MotionLayout, SearchView.OnQueryTextListener,
         val color = ResourcesCompat.getColor(resources, colorId, null)
         val colorStateList = ColorStateList.valueOf(color)
         ViewCompat.setBackgroundTintList(view, colorStateList)
-
     }
 
     private fun onSearch() {
-        TransitionManager.beginDelayedTransition(this, searchFocusTransition)
-        recentSearchesList.visibility = View.VISIBLE
-        searchView.layoutParams = (searchView.layoutParams as LayoutParams).apply {
-            startToStart = PARENT_ID
-            endToStart = settingsButton.id
-            topToTop = PARENT_ID
-            topMargin = 0
-            width = MATCH_CONSTRAINT
-        }
-        motionLayout.getConstraintSet(R.id.start).apply {
-            getConstraint(R.id.search_view).layout.apply {
-                topToTop = PARENT_ID
-                topToBottom = UNSET
-                endToStart = R.id.settings_button
-                startToStart = PARENT_ID
-                this.mWidth = MATCH_CONSTRAINT
-                topMargin = 0
-            }
-
-            getConstraint(R.id.settings_button).layout.apply {
-                startToEnd = UNSET
-                endToEnd = PARENT_ID
-            }
-        }
+        onSearchAnimation()
+        isSearchClosed = false
+        hideFilterLayout()
     }
 
     private fun onClose() {
         quickQueryJob?.cancel()
         searchProgressBar.visibility = View.INVISIBLE
-        TransitionManager.beginDelayedTransition(this, searchFocusTransition)
-        recentSearchesList.visibility = View.GONE
+        searchNoItem.visibility = View.INVISIBLE
+        TransitionManager.beginDelayedTransition(this, android.transition.AutoTransition())
+        isSearchClosed = true
+        onCloseAnimation()
+    }
+
+    private fun onSearchAnimation() {
+        motionLayout.getConstraintSet(R.id.start).apply {
+            getConstraint(R.id.search_view).layout.apply {
+                topToTop = PARENT_ID
+                startToStart = PARENT_ID
+                topMargin = 0
+            }
+            getConstraint(R.id.settings_button).layout.apply {
+                endToEnd = PARENT_ID
+            }
+            searchView.background =
+                ResourcesCompat.getDrawable(resources, R.color.colorSurface, null)
+            settingsButton.background =
+                ResourcesCompat.getDrawable(resources, R.color.colorSurface, null)
+        }
+        searchesHistoryList.apply {
+            visibility = View.VISIBLE
+            scrollToPosition(min(0, historyListAdapter.itemCount - 1))
+        }
+    }
+
+    private fun onCloseAnimation() {
+        searchesHistoryList.visibility = View.GONE
         motionLayout.getConstraintSet(R.id.start).apply {
             getConstraint(R.id.search_view).layout.apply {
                 topToTop = UNSET
                 topToBottom = R.id.headline
-                endToStart = UNSET
+                endToStart = R.id.settings_button
                 startToStart = R.id.headline
-                this.mWidth = convertDpToPixel(50, resources)
                 topMargin = convertDpToPixel(50, resources)
             }
-
             getConstraint(R.id.settings_button).layout.apply {
-                startToEnd = R.id.search_view
-                endToEnd = UNSET
+                endToEnd = R.id.headline
             }
         }
+        searchView.background =
+            ResourcesCompat.getDrawable(resources, R.drawable.rounded_search_view, null)
+        settingsButton.background = null
     }
 
     private fun onType(text: String?) {
-        if (text.isNullOrBlank()) {
-            recentSearchesList.visibility = View.VISIBLE
-            searchRecyclerView.visibility = View.INVISIBLE
+        if (text == null) {
+            searchesHistoryList.visibility = View.VISIBLE
+            searchRecyclerView.visibility = View.GONE
+            return
+        }
+        if (text.isBlank()) {
+            quickQueryJob?.cancel()
+            loadDataJob?.cancel()
+            onQueryCanceled("debounce")
+            searchNoItem.visibility = View.INVISIBLE
+            searchesHistoryList.visibility = View.VISIBLE
+            searchRecyclerView.visibility = View.GONE
         } else {
-            recentSearchesList.visibility = View.INVISIBLE
+            searchesHistoryList.visibility = View.INVISIBLE
             searchRecyclerView.visibility = View.VISIBLE
         }
     }
 
     override fun onClick(position: Int, view: View) {
-        searchView.setQuery(recentListAdapter.recentData?.get(position)?.searchText, true)
+        searchView.setQuery(historyListAdapter.currentList[position]?.searchText, true)
+    }
+
+    fun submitHistoryData(list: MutableList<HistoryListAdapter.SearchHistoryData>) {
+        historyListAdapter.submitList(list)
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -508,18 +462,66 @@ class SearchViewLayout : MotionLayout, SearchView.OnQueryTextListener,
     private fun filterAnimation() {
         TransitionManager.beginDelayedTransition(this, filterExpandTransition)
         if (isFilterLayoutHidden) {
-            filterLayout.layoutParams = (filterLayout.layoutParams as LayoutParams).apply {
-                topToBottom = UNSET
-                bottomToBottom = PARENT_ID
-                isFilterLayoutHidden = false
-            }
+            showFilterLayout()
         } else {
-            filterLayout.layoutParams = (filterLayout.layoutParams as LayoutParams).apply {
-                topToBottom = PARENT_ID
-                bottomToBottom = UNSET
-                isFilterLayoutHidden = true
+            hideFilterLayout()
+        }
+    }
+
+    private fun showFilterLayout() {
+        requestFocus()
+        filterLayout.layoutParams = (filterLayout.layoutParams as LayoutParams).apply {
+            topToBottom = searchView.id
+            verticalBias = 1f
+            bottomToBottom = PARENT_ID
+            isFilterLayoutHidden = false
+        }
+        isSelected = true
+    }
+
+    private fun hideFilterLayout() {
+        filterLayout.layoutParams = (filterLayout.layoutParams as LayoutParams).apply {
+            topToBottom = PARENT_ID
+            bottomToBottom = UNSET
+            isFilterLayoutHidden = true
+        }
+        settingsButton.isSelected = false
+    }
+
+    inline fun setOnRecentSearchCancelClickListener(crossinline onClick: (position: Int, view: View) -> Unit) {
+        historyListAdapter.onButtonClickListener = object : OnItemClickListener {
+            override fun onClick(position: Int, view: View) {
+                onClick(position, view)
             }
         }
+    }
+
+    inline fun setOnClearButtonClickListener(crossinline onClick: (view: View?) -> Unit) {
+        clearLatestDataDialog = MaterialAlertDialogBuilder(context)
+            .setPositiveButton(
+                resources.getString(android.R.string.ok)
+            ) { dialog, which -> onClick(null) }
+            .setTitle(R.string.clear_data_confirmation)
+            .setNegativeButton(android.R.string.cancel, null)
+            .create()
+        clearButton.setOnClickListener { clearLatestDataDialog?.show() }
+    }
+
+    fun submitLatestSearchList(list: MutableList<LatestSearchedAdapter.LatestSearchData>) {
+        clearButton.isEnabled = list.count() > 0
+        latestSearchesAdapter.submitList(list)
+    }
+
+    fun addLatestSearchesOnItemClickListener(onItemClickListener: OnItemClickListener) {
+        latestSearchesAdapter.onItemClickListener = onItemClickListener
+    }
+
+    fun getQuery(): String {
+        return searchView.query.toString()
+    }
+
+    fun getSearchAdapterItem(position: Int): SearchData? {
+        return searchListAdapter.searchData?.get(position)
     }
 
     override fun onQueryStart() {
@@ -528,27 +530,40 @@ class SearchViewLayout : MotionLayout, SearchView.OnQueryTextListener,
     }
 
     override fun onDataLoad() {
-
+        Log.i("query", "data loading")
     }
 
     override fun onDataLoaded() {
-
+        Log.i("query", "data loaded")
     }
 
     override fun onQueryFilter() {
-
+        Log.i("query", "filtering")
     }
 
     override fun onQueryCanceled(message: String) {
         searchProgressBar.visibility = View.INVISIBLE
     }
 
-    override fun onQueryCompleted() {
+    override fun onQueryCompleted(query: String?, isQuickSearch: Boolean, count: Int) {
+        if (!isQuickSearch && !query.isNullOrBlank()) onAddHistoryData?.invoke(query, count)
         searchProgressBar.visibility = View.INVISIBLE
+        searchNoItem.visibility =
+            if (count == 0 && !isSearchClosed && searchView.isInEditMode) View.VISIBLE else View.INVISIBLE
     }
 
     private fun syncDataSourceData(position: Int, isSelected: Boolean) {
         dataSourceAdapter?.dataSource?.get(position)?.isEnabled = isSelected
+    }
+
+    @OnLifecycleEvent(Lifecycle.Event.ON_DESTROY)
+    fun clear() {
+        loadDataJob?.cancel()
+        quickQueryJob?.cancel()
+    }
+
+    fun registerLifecycle(lifecycle: Lifecycle) {
+        lifecycle.addObserver(this)
     }
 }
 

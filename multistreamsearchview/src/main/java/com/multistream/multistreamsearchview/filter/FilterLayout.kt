@@ -16,7 +16,7 @@ import androidx.lifecycle.LiveData
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 import com.google.android.material.textview.MaterialTextView
-import com.multistream.multistreamsearchview.*
+import com.multistream.multistreamsearchview.R
 import com.multistream.multistreamsearchview.data_source.DataSource
 import com.multistream.multistreamsearchview.data_sync.SingleSelectionDataSync
 import com.multistream.multistreamsearchview.search_manager.SearchManager
@@ -27,19 +27,15 @@ import kotlinx.coroutines.*
 class FilterLayout : ConstraintLayout, CompoundButton.OnCheckedChangeListener {
 
     private var searchFilterManager: SearchManager<SearchViewLayout.SearchData>? = null
-
     var defaultFilterName = resources.getString(R.string.default_filter_name)
-
     var filtersMarginTop =
         convertDpToPixel(
             25,
             resources
         )
-
     lateinit var filterText: TextView
-
     private var filterJob: Job? = null
-
+    private var loadJob: Job? = null
     private val singleSelectionDataSync: SingleSelectionDataSync<SearchViewLayout.SearchData> by lazy { SingleSelectionDataSync<SearchViewLayout.SearchData>() }
 
     constructor(context: Context?) : super(context) {init(context)}
@@ -114,6 +110,7 @@ class FilterLayout : ConstraintLayout, CompoundButton.OnCheckedChangeListener {
                 it.startToEnd = titleView.id
                 it.topToTop = titleView.id
                 it.endToEnd = PARENT_ID
+                it.marginEnd = convertDpToPixel(16, resources)
             }
             this.isSingleSelection = isSingleSelection
         }
@@ -129,6 +126,7 @@ class FilterLayout : ConstraintLayout, CompoundButton.OnCheckedChangeListener {
             text = title
             isCheckedIconVisible = isSingleSelection
             isCheckable = true
+            setChipBackgroundColorResource(R.color.chip_selector)
         }
     }
 
@@ -136,13 +134,15 @@ class FilterLayout : ConstraintLayout, CompoundButton.OnCheckedChangeListener {
         name: String,
         filterSelections: Collection<FilterSelection<SearchViewLayout.SearchData>>,
         isSingleSelection: Boolean = false,
-        isAllSelectionEnabled: Boolean = true
+        isAllSelectionEnabled: Boolean = true,
+        allName: String?
     ) {
         searchFilterManager?.addFilter(
             name,
             filterSelections,
             isSingleSelection,
-            isAllSelectionEnabled
+            isAllSelectionEnabled,
+            allName ?: context.getString(R.string.all)
         )
     }
 
@@ -161,6 +161,18 @@ class FilterLayout : ConstraintLayout, CompoundButton.OnCheckedChangeListener {
                     }
                 }
             } else {
+                if (filter != null && filter.isMultipleSelectionEnabled) {
+                    val allFilter = searchFilterManager?.findFilterBySelectionId(selectedId)
+                    val allFilterFirstSelection = allFilter?.filterSelections?.first()
+                    if (allFilterFirstSelection != null) {
+                        val chipGroup = findViewById<ChipGroup>(allFilter.id)
+                        (chipGroup.children.first() as Chip).apply {
+                            this.isChecked = false
+                            this.isSelected = false
+                        }
+                        singleSelectionDataSync.sync(allFilterFirstSelection, allFilterFirstSelection.id!!, false )
+                    }
+                }
                 singleSelectionDataSync.sync(filterSelection, selectedId, isChecked)
             }
         } else {
@@ -179,16 +191,16 @@ class FilterLayout : ConstraintLayout, CompoundButton.OnCheckedChangeListener {
     override fun onCheckedChanged(buttonView: CompoundButton?, isChecked: Boolean) {
         Log.d("MATCHID", "selected id: ${buttonView?.id}")
         buttonView?.let { syncChipGroupWithData(it.id, isChecked) }
+        if (loadJob != null && !loadJob?.isActive!!)
         filterJob?.cancel()
         filterJob = CoroutineScope(Dispatchers.Default).launch {
             searchFilterManager?.dataSource?.itemsData?.let {
                 if (it.isNotEmpty()) {
                     withContext(Dispatchers.Main){searchFilterManager?.onQueryListener?.onQueryStart()}
-                    delay(1000)
                     val filterData = searchFilterManager?.filter(it)
                     searchFilterManager?.apply {
                         itemsLiveData?.postValue(filterData)
-                      withContext(Dispatchers.Main) {onQueryListener?.onQueryCompleted()}
+                      withContext(Dispatchers.Main) {onQueryListener?.onQueryCompleted( null, true, 0)}
                     }
                 }
             }
@@ -222,9 +234,12 @@ class FilterLayout : ConstraintLayout, CompoundButton.OnCheckedChangeListener {
     }
 
    suspend fun query(text: String) {
-        searchFilterManager?.queryData(text)
+        coroutineScope {
+            loadJob = launch {
+                searchFilterManager?.queryData(text, false)
+            }
+        }
     }
-
 
     private fun init(context: Context?) {
         filterText = MaterialTextView(context!!).apply {
@@ -253,7 +268,6 @@ class FilterLayout : ConstraintLayout, CompoundButton.OnCheckedChangeListener {
             text = context.getString(R.string.filters)
             textAlignment = View.TEXT_ALIGNMENT_TEXT_START
         }
-
         addView(filterText)
     }
 }

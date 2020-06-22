@@ -1,12 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@color/colorSurface"
     android:layout_marginStart="8dp"
     android:layout_marginTop="4dp"
     android:layout_marginEnd="8dp"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+    android:background="@color/colorSurface">
+
+    <View
+        android:id="@+id/count_divider"
+        android:layout_width="1dp"
+        android:layout_height="0dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:background="?android:attr/listDivider"
+
+        app:layout_constraintBottom_toBottomOf="@id/game_text"
+        app:layout_constraintHorizontal_bias="0.5"
+        app:layout_constraintStart_toEndOf="@id/game_text"
+        app:layout_constraintTop_toTopOf="@+id/game_text" />
+
+    <ImageView
+        android:id="@+id/followers_icon"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_marginStart="8dp"
+        android:background="@drawable/eye_icon"
+        android:backgroundTint="@color/colorOnSecondaryVariant"
+        app:layout_constraintBottom_toBottomOf="@+id/count_divider"
+        app:layout_constraintStart_toEndOf="@+id/count_divider"
+        app:layout_constraintTop_toTopOf="@id/count_divider" />
 
     <View
         android:id="@+id/divider"
@@ -15,17 +39,31 @@
         android:layout_marginTop="2dp"
         android:background="?android:attr/listDivider"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="@+id/image"
-        app:layout_constraintTop_toBottomOf="@id/image" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="parent" />
 
     <ImageView
         android:id="@+id/image"
         android:layout_width="110dp"
         android:layout_height="60dp"
+        android:background="@drawable/default_video_place_holder"
         android:scaleType="centerCrop"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/followers_text"
+        style="@style/TextAppearance.MaterialComponents.Caption"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:layout_marginBottom="4dp"
+        android:text="0"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="@+id/platform_image"
+        app:layout_constraintStart_toEndOf="@+id/followers_icon"
+        app:layout_constraintTop_toBottomOf="@+id/text" />
 
     <com.google.android.material.textview.MaterialTextView
         android:id="@+id/text"
@@ -34,26 +72,25 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="24dp"
         android:layout_marginTop="8dp"
-        android:layout_marginEnd="24dp"
-        android:textStyle="bold"
+        android:layout_marginEnd="16dp"
         android:text="Valorant"
-        app:layout_constraintEnd_toStartOf="@id/platform_image"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toStartOf="@+id/live_image"
         app:layout_constraintStart_toEndOf="@id/image"
-        app:layout_constraintTop_toTopOf="@+id/image"
+        app:layout_constraintTop_toTopOf="parent"
         app:textAllCaps="true" />
 
     <com.google.android.material.textview.MaterialTextView
-        android:id="@+id/category_text"
+        android:id="@+id/game_text"
         style="@style/TextAppearance.MaterialComponents.Caption"
-        android:layout_width="0dp"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
+        android:layout_marginBottom="4dp"
+        android:text="NULL"
         android:textStyle="bold"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="@id/text"
-        app:layout_constraintStart_toStartOf="@id/text"
-        app:layout_constraintTop_toBottomOf="@id/text"
-        app:layout_constraintVertical_bias="0.57"
+        app:layout_constraintStart_toStartOf="@+id/text"
+        app:layout_constraintTop_toBottomOf="@+id/text"
         app:textAllCaps="true" />
 
     <ImageView
@@ -63,7 +100,17 @@
         android:layout_marginEnd="16dp"
         android:scaleType="fitCenter"
         android:src="@drawable/x_icon"
-        app:layout_constraintBottom_toBottomOf="@+id/category_text"
+        app:layout_constraintBottom_toBottomOf="@+id/game_text"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/text" />
+
+    <ImageView
+        android:id="@+id/live_image"
+        android:layout_width="45dp"
+        android:layout_height="45dp"
+        android:layout_marginEnd="8dp"
+        android:src="@drawable/live_vector_animated"
+        app:layout_constraintBottom_toBottomOf="@+id/text"
+        app:layout_constraintEnd_toStartOf="@+id/platform_image"
         app:layout_constraintTop_toTopOf="@+id/text" />
 </androidx.constraintlayout.widget.ConstraintLayout>

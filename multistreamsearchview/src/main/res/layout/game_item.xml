@@ -15,8 +15,8 @@
         android:layout_marginTop="2dp"
         android:background="?android:attr/listDivider"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="@+id/image"
-        app:layout_constraintTop_toBottomOf="@id/image" />
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="parent" />
 
     <ImageView
         android:id="@+id/image"
@@ -35,15 +35,15 @@
         android:layout_marginStart="24dp"
         android:layout_marginTop="8dp"
         android:layout_marginEnd="24dp"
-        android:textStyle="bold"
         android:text="Valorant"
+        android:textStyle="bold"
         app:layout_constraintEnd_toStartOf="@id/platform_image"
         app:layout_constraintStart_toEndOf="@id/image"
-        app:layout_constraintTop_toTopOf="@+id/image"
+        app:layout_constraintTop_toTopOf="parent"
         app:textAllCaps="true" />
 
     <com.google.android.material.textview.MaterialTextView
-        android:id="@+id/category_text"
+        android:id="@+id/game_text"
         style="@style/TextAppearance.MaterialComponents.Caption"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
@@ -63,7 +63,7 @@
         android:layout_marginEnd="16dp"
         android:scaleType="fitCenter"
         android:src="@drawable/x_icon"
-        app:layout_constraintBottom_toBottomOf="@+id/category_text"
+        app:layout_constraintBottom_toBottomOf="@+id/game_text"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="@+id/text" />
 </androidx.constraintlayout.widget.ConstraintLayout>

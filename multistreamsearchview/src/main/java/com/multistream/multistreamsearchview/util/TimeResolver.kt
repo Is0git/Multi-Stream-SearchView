@@ -1,6 +1,6 @@
 package com.multistream.multistreamsearchview.util
 
-import com.multistream.multistreamsearchview.recent_search.RecentListAdapter
+import com.multistream.multistreamsearchview.recent_search.HistoryListAdapter
 
 
 object TimeResolver {
@@ -9,7 +9,7 @@ object TimeResolver {
     private const val HOUR_MILLIS = 60 * MINUTE_MILLIS
     private const val DAY_MILLIS = 24 * HOUR_MILLIS
     private const val WEEK_MILLIS = 7 * DAY_MILLIS
-    fun getTimeAgo(timeGiven: Long): RecentListAdapter.Time? {
+    fun getTimeAgo(timeGiven: Long): HistoryListAdapter.Time? {
         var time = timeGiven
         if (time < 1000000000000L) { // if timestamp given in seconds, convert to millis
             time *= 1000
@@ -21,31 +21,31 @@ object TimeResolver {
         val diff = now - time
         return when {
             diff < MINUTE_MILLIS -> {
-                RecentListAdapter.Time.JUST_NOW
+                HistoryListAdapter.Time.JUST_NOW
             }
             diff < 2 * MINUTE_MILLIS -> {
-                RecentListAdapter.Time.MINUTE_AGO
+                HistoryListAdapter.Time.MINUTE_AGO
             }
             diff < 50 * MINUTE_MILLIS -> {
-             RecentListAdapter.Time.MINUTES_AGO
+             HistoryListAdapter.Time.MINUTES_AGO
             }
             diff < 90 * MINUTE_MILLIS -> {
-               RecentListAdapter.Time.HOUR_AGO
+               HistoryListAdapter.Time.HOUR_AGO
             }
             diff < 24 * HOUR_MILLIS -> {
-                RecentListAdapter.Time.HOURS_AGO
+                HistoryListAdapter.Time.HOURS_AGO
             }
             diff < 48 * HOUR_MILLIS -> {
-               RecentListAdapter.Time.YESTERDAY
+               HistoryListAdapter.Time.YESTERDAY
             }
             diff <   WEEK_MILLIS -> {
-                RecentListAdapter.Time.WEEK_AGO
+                HistoryListAdapter.Time.WEEK_AGO
             }
             diff <   2 * WEEK_MILLIS -> {
-               RecentListAdapter.Time.WEEKS_AGO
+               HistoryListAdapter.Time.WEEKS_AGO
             }
             else -> {
-                RecentListAdapter.Time.LONG_TIME_AGO
+                HistoryListAdapter.Time.LONG_TIME_AGO
             }
         }
     }
